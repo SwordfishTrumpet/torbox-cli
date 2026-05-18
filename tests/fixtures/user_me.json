@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "id": 42,
+    "email": "user@example.com",
+    "plan": "Pro",
+    "api_key": "tb-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
+}

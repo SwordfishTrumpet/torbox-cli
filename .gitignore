@@ -1,0 +1,63 @@
+# torbox-cli
+
+.env
+*.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Local-only planning files — NEVER push to GitHub
+TRD.md
+TODO.md
+AGENTS.md
+
+# Superpowers / AI planning artifacts
+docs/superpowers/
+.opencode/
+
+# Local-only release/docs templates
+.github/release_template.md
+docs/RELEASE_SIGNING.md
+
+# Package manager lock files (users resolve from pyproject.toml)
+uv.lock
+
+# Secrets
+*.key
+*.pem
+*.token
+credentials.json
+secrets.yaml
+secrets.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test artifacts
+.coverage
+.coverage *
+.coverage.[0-9]*
+htmlcov/
+test_report.json
+
+# Local test scripts
+test.py
+security_check.py
+
+# Temporary files
+*.tmp
+*.log
