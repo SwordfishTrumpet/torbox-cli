@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "url": "https://example.com/feed.xml",
+      "title": "Example Feed"
+    }
+  ]
+}

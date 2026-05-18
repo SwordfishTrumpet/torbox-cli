@@ -17,6 +17,9 @@ TRD.md
 TODO.md
 AGENTS.md
 
+# Superpowers / AI planning artifacts
+docs/superpowers/
+
 # Secrets
 *.key
 *.pem
@@ -38,7 +41,14 @@ Thumbs.db
 
 # Test artifacts
 .coverage
+.coverage *
+.coverage.[0-9]*
 htmlcov/
+test_report.json
+
+# Local test scripts
+test.py
+security_check.py
 
 # Temporary files
 *.tmp

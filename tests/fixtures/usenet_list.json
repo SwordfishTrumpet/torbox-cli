@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 10,
+      "name": "Example NZB",
+      "status": "completed",
+      "size": 2000000000
+    }
+  ]
+}
