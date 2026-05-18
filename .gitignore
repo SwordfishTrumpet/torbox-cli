@@ -1,0 +1,45 @@
+# torbox-cli
+
+.env
+*.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Local-only planning files — NEVER push to GitHub
+TRD.md
+TODO.md
+AGENTS.md
+
+# Secrets
+*.key
+*.pem
+*.token
+credentials.json
+secrets.yaml
+secrets.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test artifacts
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+*.log
