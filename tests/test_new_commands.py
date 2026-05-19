@@ -297,42 +297,6 @@ def test_usenet_export_invalid_info(httpx_mock: Any) -> None:
 # =============================================================================
 
 
-def test_usenet_export_to_file(httpx_mock: Any, tmp_path: Any) -> None:
-    out_path = tmp_path / "test.nzb"
-    httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/usenet/mylist?id=10",
-        json={"success": True, "data": {"id": 10, "name": "Test"}},
-    )
-    httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/usenet/nzbtofile",
-        content=b"<nzb></nzb>",
-    )
-    result = runner.invoke(
-        app,
-        ["usenet", "export", "10", "--output", str(out_path)],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-    assert out_path.read_bytes() == b"<nzb></nzb>"
-
-
-def test_usenet_export_invalid_info(httpx_mock: Any) -> None:
-    httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/usenet/mylist?id=10",
-        json={"success": True, "data": "invalid"},
-    )
-    result = runner.invoke(
-        app, ["usenet", "export", "10", "--json"], env={"TORBOX_API_KEY": "dummy"}
-    )
-    assert result.exit_code != 0
-    assert "not found or invalid response" in result.output
-
-
-# =============================================================================
-# user auth-device-poll and auth-device-complete
-# =============================================================================
-
-
 def test_user_auth_device_poll(httpx_mock: Any) -> None:
     httpx_mock.add_response(
         url=f"{DEFAULT_BASE_URL}/user/auth/device/poll?device_code=dc123",

@@ -20,7 +20,10 @@ app = typer.Typer(help="General TorBox API endpoints (public, no auth required)"
 
 
 @app.command(
-    help="GET / — API status and version info\n\nExample: torbox general status"
+    help=(
+        "GET /stats — API status and service statistics\n\n"
+        "Example: torbox general status"
+    )
 )
 @handle_errors
 def status(
@@ -30,8 +33,9 @@ def status(
         None, "--field", "-f", help="Extract dot-path field"
     ),
 ) -> None:
+    """Check API status (delegates to /stats since root / returns 404)."""
     client = _get_client(ctx)
-    data: dict[str, Any] = client.public_get("/")
+    data: dict[str, Any] = client.public_get("/stats")
     print_json_envelope(ctx, data, "general status", local_json=json, field=field)
     if _should_json(ctx, json) or _get_field(ctx, field):
         return

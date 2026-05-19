@@ -136,7 +136,9 @@ def test_format_envelope_error_case() -> None:
 
 
 def test_general_status_json_envelope(httpx_mock: Any) -> None:
-    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", json={"status": "ok"})
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/stats", json={"status": "ok"}
+    )
     result = runner.invoke(app, ["general", "status", "--json"])
     assert result.exit_code == 0
     parsed = json.loads(result.output)
@@ -168,7 +170,9 @@ def test_torrents_list_json_envelope(httpx_mock: Any) -> None:
 
 
 def test_compact_json_single_line(httpx_mock: Any) -> None:
-    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", json={"status": "ok"})
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/stats", json={"status": "ok"}
+    )
     # Global --compact must come before subcommand in Typer/Click
     result = runner.invoke(app, ["--json", "--compact", "general", "status"])
     assert result.exit_code == 0
@@ -184,7 +188,7 @@ def test_compact_json_single_line(httpx_mock: Any) -> None:
 
 def test_human_error_contains_actionable_text(httpx_mock: Any) -> None:
     """When not in JSON mode, errors should be colored and actionable."""
-    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", status_code=403)
+    httpx_mock.add_response(url="https://api.torbox.app/v1/api/stats", status_code=403)
     result = runner.invoke(app, ["general", "status"])
     assert result.exit_code == 2
     stderr = result.output
@@ -228,7 +232,9 @@ def test_help_examples_present() -> None:
 
 
 def test_field_missing_path_returns_null(httpx_mock: Any) -> None:
-    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", json={"status": "ok"})
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/stats", json={"status": "ok"}
+    )
     result = runner.invoke(
         app, ["general", "status", "--json", "--field", "missing.path"]
     )

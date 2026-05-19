@@ -12,7 +12,9 @@ runner = CliRunner()
 
 
 def test_general_status(httpx_mock: Any) -> None:
-    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", json={"status": "ok"})
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/stats", json={"status": "ok"}
+    )
     result = runner.invoke(app, ["general", "status", "--json"])
     assert result.exit_code == 0
     assert "status" in result.output

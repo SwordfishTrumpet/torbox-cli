@@ -426,7 +426,7 @@ def test_quiet_suppresses_table_output(httpx_mock: Any) -> None:
 
 def test_quiet_with_general_status(httpx_mock: Any) -> None:
     httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/",
+        url=f"{DEFAULT_BASE_URL}/stats",
         json={"success": True, "data": {"version": "1.0"}},
     )
     result = runner.invoke(app, ["--quiet", "general", "status"])
@@ -454,7 +454,7 @@ def test_http_status_maps_to_exit_code(
     httpx_mock: Any, status_code: int, expected_exit_code: int
 ) -> None:
     httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/",
+        url=f"{DEFAULT_BASE_URL}/stats",
         status_code=status_code,
         text="Error",
     )
