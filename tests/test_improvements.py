@@ -84,8 +84,9 @@ def test_confirm_destructive_yes_flag() -> None:
 # --- Missing API Key Warning Test ---
 
 
-def test_missing_api_key_warning(httpx_mock: Any) -> None:
+def test_missing_api_key_warning(monkeypatch: Any, httpx_mock: Any) -> None:
     """Ensure a warning is emitted when no API key is available."""
+    monkeypatch.delenv("TORBOX_API_KEY", raising=False)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         result = runner.invoke(app, ["torrents", "list"])

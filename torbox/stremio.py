@@ -304,6 +304,17 @@ def filter_streams(
         if source and source.lower() not in src.lower():
             continue
 
+        gi_serializable = {}
+        for k, v in gi.items():
+            if hasattr(v, "name"):
+                gi_serializable[k] = str(v)
+            elif isinstance(v, dict):
+                gi_serializable[k] = {
+                    sk: str(sv) if hasattr(sv, "name") else sv for sk, sv in v.items()
+                }
+            else:
+                gi_serializable[k] = v
+
         s["_parsed"] = {
             "resolution": res,
             "cached": c,
@@ -315,7 +326,7 @@ def filter_streams(
             "year": year,
             "video_codec": video_codec,
             "audio_codec": audio_codec,
-            "guessit": gi,
+            "guessit": gi_serializable,
         }
         filtered.append(s)
 

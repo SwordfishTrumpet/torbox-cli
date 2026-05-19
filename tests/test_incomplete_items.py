@@ -21,8 +21,9 @@ class TestOptionalAuth:
         assert client.api_key == "test-key"
         assert hasattr(client, "optional_get")
 
-    def test_optional_get_does_not_raise_without_key(self) -> None:
+    def test_optional_get_does_not_raise_without_key(self, monkeypatch: Any) -> None:
         """optional_get must not raise AuthenticationError when api_key is missing."""
+        monkeypatch.delenv("TORBOX_API_KEY", raising=False)
         client = TorBoxClient(api_key=None)
         assert client.api_key is None
         assert hasattr(client, "optional_get")
