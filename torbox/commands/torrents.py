@@ -389,7 +389,7 @@ def checkcached_show(
         20, "--limit", help="Max streams to consider per episode"
     ),
     max_workers: int = typer.Option(
-        5, "--max-workers", help="Parallel Stremio request workers"
+        20, "--max-workers", help="Parallel Stremio request workers"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     field: str | None = typer.Option(
@@ -445,6 +445,14 @@ def checkcached_show(
             if not quiet:
                 print("[yellow]No episodes matched the requested filter.[/yellow]")
             raise typer.Exit(code=1)
+
+    if season is None and len(all_episodes) > 52:
+        if not quiet:
+            print(
+                f"[yellow]Warning: {len(all_episodes)} episodes found without "
+                f"--season filter. This may be very slow. "
+                f"Use --season N to target a specific season.[/yellow]"
+            )
 
     # 3. Build StremioClient
     api_key = ctx.obj.get("api_key") if ctx.obj else None
