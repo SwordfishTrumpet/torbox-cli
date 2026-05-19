@@ -304,16 +304,16 @@ def filter_streams(
         if source and source.lower() not in src.lower():
             continue
 
-        gi_serializable = {}
-        for k, v in gi.items():
-            if hasattr(v, "name"):
-                gi_serializable[k] = str(v)
-            elif isinstance(v, dict):
-                gi_serializable[k] = {
-                    sk: str(sv) if hasattr(sv, "name") else sv for sk, sv in v.items()
-                }
-            else:
-                gi_serializable[k] = v
+        def _make_serializable(obj: Any) -> Any:
+            if hasattr(obj, "name"):
+                return str(obj)
+            if isinstance(obj, dict):
+                return {k: _make_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple)):
+                return [_make_serializable(v) for v in obj]
+            return obj
+
+        gi_serializable = {k: _make_serializable(v) for k, v in gi.items()}
 
         s["_parsed"] = {
             "resolution": res,
