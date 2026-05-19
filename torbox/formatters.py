@@ -11,6 +11,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from torbox.utils import format_size
+
 console = Console()
 
 
@@ -80,6 +82,40 @@ def print_dict_panel(data: dict[str, Any], title: str = "") -> None:
     """Format a dictionary as a key-value panel."""
     lines = [f"{k}: {v}" for k, v in data.items()]
     console.print(Panel("\n".join(lines), title=title))
+
+
+def print_episode_cache_table(rows: list[dict[str, Any]], title: str = "") -> None:
+    """Print a Rich table of per-episode cache status."""
+    if not rows:
+        console.print("No episodes to display.")
+        return
+    table = Table(title=title or "Episode Cache Status")
+    table.add_column("Season", justify="right")
+    table.add_column("Episode", justify="right")
+    table.add_column("Title", max_width=40)
+    table.add_column("Cached", justify="center")
+    table.add_column("Streams", justify="right")
+    table.add_column("Cached #", justify="right")
+    table.add_column("Resolution")
+    table.add_column("Quality")
+    table.add_column("Source")
+    table.add_column("Seeders", justify="right")
+    table.add_column("Size")
+    for r in rows:
+        table.add_row(
+            str(r.get("season", "")),
+            str(r.get("episode", "")),
+            r.get("title", ""),
+            "\u2713" if r.get("cached") else "\u2717",
+            str(r.get("streams_count", 0)),
+            str(r.get("cached_streams_count", 0)),
+            r.get("best_resolution") or "",
+            r.get("best_quality") or "",
+            r.get("best_source") or "",
+            str(r.get("best_seeders", 0)),
+            format_size(r.get("best_size", 0)),
+        )
+    console.print(table)
 
 
 def print_json(

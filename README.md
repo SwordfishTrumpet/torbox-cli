@@ -98,7 +98,7 @@ torbox config doctor
 |-------|----------|
 | `general` | status, stats, changelogs, speedtest |
 | `search` | streams, library, popular, info |
-| `torrents` | list, info, create, control, checkcached, requestdl, export, async-create, edit |
+| `torrents` | list, info, create, control, checkcached (hashes, show), requestdl, export, async-create, edit |
 | `usenet` | list, create, control, edit, checkcached, requestdl |
 | `webdl` | list, create, control, edit, checkcached, hosters |
 | `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, confirmation |
@@ -253,6 +253,33 @@ torbox search tt0133093 --cached     # same as: torbox search streams tt0133093 
 - **Series without season/episode:** Some streams may work without specifying season/episode, but most require them.
 
 > See [DISCLAIMER.md](DISCLAIMER.md) for full legal and third-party service disclaimers.
+
+## TV Show Cache Checking (`torrents checkcached show`)
+
+Check cache status for **all episodes of a TV show** in a single command. This discovers episodes via Cinemeta, then queries the TorBox Stremio addon for each episode in parallel, and aggregates the results into a single table.
+
+```bash
+# Check all episodes of Season 1
+ torbox torrents checkcached show tt0944947 --season 1
+
+# Only check specific episodes
+ torbox torrents checkcached show tt0944947 --season 1 --episodes 1,2,3
+
+# Filter to only cached episodes
+ torbox torrents checkcached show tt0944947 --season 1 --cached
+
+# JSON output for scripting
+ torbox torrents checkcached show tt0944947 --season 1 --json
+
+# Sort by best quality
+ torbox torrents checkcached show tt0944947 --season 1 --sort quality
+```
+
+### Notes
+
+- Uses **parallel requests** (`--max-workers` controls concurrency, default 5).
+- Supports all standard stream filters: `--resolution`, `--cached/--not-cached`, `--min-seeders`, `--quality`, `--source`, `--min-size`, `--max-size`.
+- Backward compatible: `torbox torrents checkcached hash1 hash2` still works (defaults to `hashes` subcommand).
 
 ### `--genre` Filter — Valid Genres
 

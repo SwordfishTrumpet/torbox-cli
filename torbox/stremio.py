@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import httpx
@@ -180,6 +181,80 @@ class StremioClient:
                     continue
                 raise
         raise RuntimeError("unreachable")
+
+
+def discover_episodes(imdb_id: str, season: int | None = None) -> list[dict[str, Any]]:
+    """Discover episodes for a series via Cinemeta.
+
+    Returns a list of episode dicts with keys:
+        season, episode, title, id, released.
+    """
+    meta = StremioClient.cinemeta_meta(imdb_id, "series")
+    videos = meta.get("meta", {}).get("videos", [])
+    episodes: list[dict[str, Any]] = []
+    for v in videos:
+        ep_season = v.get("season")
+        ep_episode = v.get("episode")
+        if ep_season is None or ep_episode is None:
+            continue
+        if season is not None and ep_season != season:
+            continue
+        episodes.append(
+            {
+                "season": ep_season,
+                "episode": ep_episode,
+                "title": v.get("title", ""),
+                "id": v.get("id", ""),
+                "released": v.get("released", ""),
+            }
+        )
+    episodes.sort(key=lambda x: (x["season"], x["episode"]))
+    return episodes
+
+
+def _search_single_episode(
+    client: StremioClient,
+    imdb_id: str,
+    season: int,
+    episode: int,
+) -> tuple[int, int, list[dict[str, Any]]]:
+    """Search streams for a single episode.
+
+    Returns (season, episode, streams).
+    """
+    result = client.stream_search(
+        imdb_id, type="series", season=season, episode=episode
+    )
+    return season, episode, result.get("streams", [])
+
+
+def stream_search_bulk(
+    client: StremioClient,
+    imdb_id: str,
+    episodes: list[tuple[int, int]],
+    max_workers: int = 5,
+    verbose: bool = False,
+) -> dict[tuple[int, int], list[dict[str, Any]]]:
+    """Search streams for multiple episodes in parallel.
+
+    Uses ThreadPoolExecutor to issue per-episode Stremio searches
+    concurrently and returns a mapping of (season, episode) -> streams.
+    """
+    results: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_search_single_episode, client, imdb_id, s, e): (s, e)
+            for s, e in episodes
+        }
+        for future in as_completed(futures):
+            s, e, streams = future.result()
+            results[(s, e)] = streams
+            if verbose:
+                print(
+                    f"[bulk] S{s}E{e}: {len(streams)} streams",
+                    file=sys.stderr,
+                )
+    return results
 
 
 def parse_stream_description(desc: str) -> dict[str, str]:
