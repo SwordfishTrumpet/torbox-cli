@@ -92,6 +92,9 @@ def load_config(
         "retries": DEFAULT_RETRIES,
     }
 
+    if config_path and not Path(config_path).exists():
+        raise ConfigValidationError(f"Config file not found: {config_path}")
+
     if api_key_override:
         config["api_key"] = api_key_override
         return config

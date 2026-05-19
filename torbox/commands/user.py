@@ -66,7 +66,14 @@ def settings(
     if body:
         import json as _json
 
-        payload = _json.loads(body)
+        from torbox.exceptions import ValidationError
+
+        try:
+            payload = _json.loads(body)
+        except _json.JSONDecodeError as exc:
+            raise ValidationError(
+                f"Invalid JSON in --body: {exc.msg} (pos {exc.pos})"
+            ) from exc
         data: dict[str, Any] = client.put("/user/settings/editsettings", json=payload)
     else:
         data = client.get("/user/me?settings=true")
@@ -130,22 +137,43 @@ def transactions(
 @app.command(
     help=(
         "GET /user/transaction/pdf?id={id} — Download transaction PDF\n"
-        "Example: torbox user transaction-pdf 123"
+        "Example: torbox user transaction-pdf 123 --output invoice.pdf"
     )
 )
 @handle_errors
 def transaction_pdf(
     ctx: Context,
     id: int,
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (default: stdout)"
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
 ) -> None:
+    import sys
+    from pathlib import Path
+
     client = _get_client(ctx)
-    data: dict[str, Any] = client.get(f"/user/transaction/pdf?transaction_id={id}")
-    print_json_envelope(ctx, data, "user transaction-pdf", local_json=json)
+    resp = client.get_bytes("/user/transaction/pdf", params={"transaction_id": id})
     if _should_json(ctx, json) or _get_field(ctx):
+        meta: dict[str, Any] = {
+            "success": True,
+            "data": {
+                "transaction_id": id,
+                "size": len(resp.content),
+                "filename": output,
+            },
+        }
+        print_json_envelope(ctx, meta, "user transaction-pdf", local_json=json)
         return
-    if not _is_quiet(ctx):
-        print_panel("Transaction PDF retrieved.", f"Transaction {id}")
+    if output:
+        Path(output).write_bytes(resp.content)
+        if not _is_quiet(ctx):
+            print_panel(
+                f"Saved {len(resp.content)} bytes to {output}",
+                f"Transaction PDF {id}",
+            )
+    else:
+        sys.stdout.buffer.write(resp.content)
 
 
 @app.command(

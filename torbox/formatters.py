@@ -146,6 +146,17 @@ def extract_field(data: Any, field: str, verbose: bool = False) -> Any:
     return data
 
 
+def print_error_json(exc: Exception) -> None:
+    """Print a JSON error payload including the exit_code."""
+    payload = {
+        "success": False,
+        "error": type(exc).__name__,
+        "detail": str(exc),
+        "exit_code": getattr(exc, "exit_code", 1),
+    }
+    print(_json.dumps(payload), file=sys.stderr)
+
+
 def print_human_error(exc: Exception, verbose: bool = False) -> None:
     """Print a colored, actionable error message to stderr per TRD section 8.
 

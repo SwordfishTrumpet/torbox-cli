@@ -9,7 +9,12 @@ from typer import Context
 
 from torbox.client import TorBoxClient
 from torbox.exceptions import TorBoxError
-from torbox.formatters import format_envelope, print_human_error, print_json
+from torbox.formatters import (
+    format_envelope,
+    print_error_json,
+    print_human_error,
+    print_json,
+)
 
 
 def _get_client(ctx: Context) -> TorBoxClient:
@@ -107,18 +112,24 @@ def confirm_destructive(operation: str, resource: str, id: int, yes: bool) -> bo
     return answer in {"y", "yes"}
 
 
+def confirm_bulk_destructive(operation: str, resource: str, yes: bool) -> bool:
+    """Prompt for confirmation on bulk destructive operations unless --yes."""
+    if operation != "delete" or yes:
+        return True
+    prompt = (
+        f"Are you sure you want to delete ALL {resource}s? "
+        "This cannot be undone. [y/N]: "
+    )
+    try:
+        answer = input(prompt).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer in {"y", "yes"}
+
+
 def _print_error_json(exc: Any) -> None:
     """Print a JSON error payload including the exit_code."""
-    import json
-    import sys
-
-    payload = {
-        "success": False,
-        "error": type(exc).__name__,
-        "detail": str(exc),
-        "exit_code": getattr(exc, "exit_code", 1),
-    }
-    print(json.dumps(payload), file=sys.stderr)
+    print_error_json(exc)
 
 
 def handle_errors(func: Any) -> Any:

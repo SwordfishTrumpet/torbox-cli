@@ -113,6 +113,8 @@ def map_http_status(status_code: int, detail: str = "") -> TorBoxError:
     """Map HTTP status codes to typed exceptions."""
     if status_code == 429:
         return RateLimitError(detail or "Rate limited. Please retry after a while.")
+    if status_code == 401:
+        return AuthenticationError(detail or "Unauthorized. Check your API key.")
     if status_code == 403:
         return AuthenticationError(detail or "Authentication failed.")
     if status_code == 404:

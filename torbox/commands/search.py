@@ -213,13 +213,16 @@ def _resolve_to_imdb(
 
     if genre:
         genre_lower = genre.lower()
-        metas = [
-            m
-            for m in metas
-            if genre_lower in ", ".join(m.get("genres", m.get("genre", []))).lower()
-            if isinstance(m.get("genres", m.get("genre", [])), list)
-            or genre_lower in str(m.get("genre", "")).lower()
-        ]
+        filtered: list[dict[str, Any]] = []
+        for m in metas:
+            genres_val = m.get("genres", m.get("genre", []))
+            if isinstance(genres_val, list):
+                if genre_lower in ", ".join(genres_val).lower():
+                    filtered.append(m)
+            else:
+                if genre_lower in str(genres_val).lower():
+                    filtered.append(m)
+        metas = filtered
         if not metas:
             if not quiet:
                 console.print(

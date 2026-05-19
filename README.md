@@ -101,7 +101,7 @@ torbox config doctor
 | `torrents` | list, info, create, control, checkcached, requestdl, export, async-create, edit |
 | `usenet` | list, create, control, edit, checkcached, requestdl |
 | `webdl` | list, create, control, edit, checkcached, hosters |
-| `user` | me, transactions, settings, searchengines, auth-device-start |
+| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, confirmation |
 | `rss` | list, items, create, edit, delete |
 | `queued` | list, control |
 | `stream` | create, data |

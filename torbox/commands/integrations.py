@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import builtins
 from typing import Any
 
 import typer
@@ -39,7 +38,7 @@ def jobs(
     print_json_envelope(ctx, data, "integrations jobs", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
-    if isinstance(data.get("data"), builtins.list):
+    if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
             print_table(data["data"], "Integration Jobs")
     elif not _is_quiet(ctx):

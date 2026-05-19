@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import signal
 import sys
 from pathlib import Path
@@ -27,7 +26,7 @@ from torbox.commands import (
     webdl,
 )
 from torbox.exceptions import TorBoxError
-from torbox.formatters import print_human_error
+from torbox.formatters import print_error_json, print_human_error
 
 app = typer.Typer(
     help=(
@@ -51,13 +50,7 @@ signal.signal(signal.SIGINT, _handle_interrupt)
 
 def _print_error_json(exc: TorBoxError) -> None:
     """Print a JSON error payload including the exit_code."""
-    payload = {
-        "success": False,
-        "error": type(exc).__name__,
-        "detail": str(exc),
-        "exit_code": exc.exit_code,
-    }
-    print(json.dumps(payload), file=sys.stderr)
+    print_error_json(exc)
 
 
 @app.callback()

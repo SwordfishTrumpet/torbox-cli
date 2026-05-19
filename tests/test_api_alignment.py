@@ -160,7 +160,7 @@ def test_usenet_control_all_flag(httpx_mock: Any) -> None:
     )
     result = runner.invoke(
         app,
-        ["usenet", "control", "--operation", "delete", "--all"],
+        ["usenet", "control", "--operation", "delete", "--all", "--yes"],
         env={"TORBOX_API_KEY": "dummy"},
     )
     assert result.exit_code == 0

@@ -14,6 +14,8 @@ from typing import Any
 import httpx
 from guessit import guessit as _guessit  # type: ignore[import-untyped]
 
+from torbox.exceptions import AuthenticationError
+
 STREMIO_BASE = "https://stremio.torbox.app"
 CINEMETA_BASE = "https://v3-cinemeta.strem.io"
 
@@ -35,7 +37,7 @@ class StremioClient:
         timeout: float = 30.0,
     ) -> None:
         if not api_key:
-            raise ValueError(
+            raise AuthenticationError(
                 "API key is required for StremioClient. "
                 "Configure TORBOX_API_KEY or use --api-key."
             )
@@ -144,14 +146,12 @@ class StremioClient:
             return dict(resp.json())
 
     def _request(self, path: str, retries: int = 2) -> dict[str, Any]:
-        last_exc: Exception | None = None
         for attempt in range(retries + 1):
             try:
                 resp = self._client.get(path)
                 resp.raise_for_status()
                 return dict(resp.json())
-            except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.NetworkError) as exc:
-                last_exc = exc
+            except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.NetworkError):
                 if attempt < retries:
                     if self.verbose:
                         print(
@@ -177,10 +177,7 @@ class StremioClient:
                     time.sleep(retry_after)
                     continue
                 raise
-
-        if last_exc:
-            raise last_exc
-        raise RuntimeError("Request failed after retries")
+        raise RuntimeError("unreachable")
 
 
 def parse_stream_description(desc: str) -> dict[str, str]:

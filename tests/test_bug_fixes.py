@@ -234,3 +234,158 @@ def test_integrations_cancel_dry_run_no_prompt() -> None:
     assert result.exit_code == 0
     assert "[dry-run]" in result.output
     assert "Aborted" not in result.output
+
+
+# --- CRIT-1: Bulk delete confirmation ---
+
+
+def test_torrents_control_all_delete_prompts_without_yes() -> None:
+    """--all --operation delete without --yes should abort (no API call)."""
+    result = runner.invoke(
+        app,
+        ["torrents", "control", "--operation", "delete", "--all"],
+        env={"TORBOX_API_KEY": "dummy"},
+        input="n\n",
+    )
+    assert result.exit_code == 0
+
+
+def test_torrents_control_all_delete_proceeds_with_yes(httpx_mock: Any) -> None:
+    """--all --operation delete with --yes should skip prompt and proceed."""
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/controltorrent",
+        json={"success": True},
+    )
+    result = runner.invoke(
+        app,
+        ["torrents", "control", "--operation", "delete", "--all", "--yes"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 0
+    assert len(httpx_mock.get_requests()) == 1
+
+
+def test_usenet_control_all_delete_prompts_without_yes() -> None:
+    """--all --operation delete without --yes should abort."""
+    result = runner.invoke(
+        app,
+        ["usenet", "control", "--operation", "delete", "--all"],
+        env={"TORBOX_API_KEY": "dummy"},
+        input="n\n",
+    )
+    assert result.exit_code == 0
+
+
+def test_webdl_control_all_delete_prompts_without_yes() -> None:
+    """--all --operation delete without --yes should abort."""
+    result = runner.invoke(
+        app,
+        ["webdl", "control", "--operation", "delete", "--all"],
+        env={"TORBOX_API_KEY": "dummy"},
+        input="n\n",
+    )
+    assert result.exit_code == 0
+
+
+# --- CRIT-2: Malformed --body raises clean error ---
+
+
+def test_user_settings_malformed_body_error() -> None:
+    """Malformed JSON in --body should produce exit_code=1, not a traceback."""
+    result = runner.invoke(
+        app,
+        ["user", "settings", "--body", '{"theme":}', "--json"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 1
+
+
+# --- CRIT-5: user transaction-pdf ---
+
+
+def test_user_transaction_pdf_json_mode(httpx_mock: Any) -> None:
+    """transaction-pdf in JSON mode should return metadata envelope."""
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/user/transaction/pdf?transaction_id=123",
+        content=b"%PDF-1.4 fake content",
+    )
+    result = runner.invoke(
+        app,
+        ["user", "transaction-pdf", "123", "--json"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 0
+    assert "transaction_id" in result.output
+    assert "size" in result.output
+
+
+def test_user_transaction_pdf_output_file(httpx_mock: Any, tmp_path: Any) -> None:
+    """transaction-pdf with --output should write bytes to file."""
+    pdf_content = b"%PDF-1.4 fake pdf data"
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/user/transaction/pdf?transaction_id=42",
+        content=pdf_content,
+    )
+    outfile = tmp_path / "invoice.pdf"
+    result = runner.invoke(
+        app,
+        ["user", "transaction-pdf", "42", "--output", str(outfile)],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 0
+    assert outfile.read_bytes() == pdf_content
+
+
+# --- HIGH-2: 401 maps to AuthenticationError ---
+
+
+def test_map_http_status_401() -> None:
+    """HTTP 401 should map to AuthenticationError with exit_code=2."""
+    from torbox.exceptions import AuthenticationError, map_http_status
+
+    exc = map_http_status(401)
+    assert isinstance(exc, AuthenticationError)
+    assert exc.exit_code == 2
+
+
+# --- HIGH-3: Missing --config file raises error ---
+
+
+def test_missing_config_file_raises_error() -> None:
+    """Passing --config to a non-existent file should fail cleanly."""
+    result = runner.invoke(
+        app,
+        ["--config", "/nonexistent/path.env", "general", "status", "--json"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code != 0
+
+
+# --- HIGH-1: Genre filtering with string genres ---
+
+
+def test_genre_filter_string_genres() -> None:
+    """Genre filter should work when meta has genre as a string, not a list."""
+    from unittest.mock import patch
+
+    from torbox.commands.search import _resolve_to_imdb
+
+    metas = [
+        {"id": "tt001", "name": "Action Movie", "genre": "Action"},
+        {"id": "tt002", "name": "Drama Movie", "genre": "Drama"},
+    ]
+    mock_result = {"metas": metas}
+
+    with patch(
+        "torbox.commands.search.StremioClient.cinemeta_search", return_value=mock_result
+    ):
+        result = _resolve_to_imdb("test", "movie", first=True, genre="Action")
+        assert result == "tt001"
+
+        result2 = _resolve_to_imdb("test", "movie", first=True, genre="Drama")
+        assert result2 == "tt002"
+
+        result3 = _resolve_to_imdb(
+            "test", "movie", first=True, quiet=True, genre="Horror"
+        )
+        assert result3 is None

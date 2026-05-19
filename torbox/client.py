@@ -194,7 +194,6 @@ class TorBoxClient:
 
         if not resp.is_success:
             raise map_http_status(resp.status_code, resp.text)
-        resp.raise_for_status()
         if return_raw:
             return resp
         result: dict[str, Any] = resp.json()

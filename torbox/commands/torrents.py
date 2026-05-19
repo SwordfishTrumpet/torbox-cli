@@ -18,6 +18,7 @@ from torbox.commands._helpers import (
     _get_field,
     _is_quiet,
     _should_json,
+    confirm_bulk_destructive,
     confirm_destructive,
     dry_run_guard,
     handle_errors,
@@ -122,7 +123,6 @@ def create(
         path = Path(file)
         if not path.exists():
             raise typer.BadParameter(f"File not found: {file}")
-        files = {"file": (path.name, path.open("rb"), "application/x-bittorrent")}
         if dry_run_guard(
             ctx,
             "POST /torrents/createtorrent",
@@ -130,9 +130,11 @@ def create(
             dry_run=dry_run,
         ):
             return
-        data: dict[str, Any] = client.post(
-            "/torrents/createtorrent", data=payload, files=files
-        )
+        with path.open("rb") as fh:
+            files = {"file": (path.name, fh, "application/x-bittorrent")}
+            data: dict[str, Any] = client.post(
+                "/torrents/createtorrent", data=payload, files=files
+            )
     else:
         if not magnet:
             raise typer.BadParameter("Either --magnet or --file is required")
@@ -140,7 +142,6 @@ def create(
             ctx, "POST /torrents/createtorrent", payload=payload, dry_run=dry_run
         ):
             return
-        # API expects formdata (not JSON) for magnet submissions.
         data = client.post("/torrents/createtorrent", data=payload)
     print_json_envelope(ctx, data, "torrents create", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
@@ -188,7 +189,10 @@ def control(
         dry_run=dry_run,
     ):
         return
-    if not all:
+    if all:
+        if not confirm_bulk_destructive(operation, "torrent", yes):
+            raise typer.Exit(code=0)
+    else:
         assert id is not None
         if not confirm_destructive(operation, "torrent", id, yes):
             raise typer.Exit(code=0)
@@ -375,7 +379,6 @@ def async_create(
         path = Path(file)
         if not path.exists():
             raise typer.BadParameter(f"File not found: {file}")
-        files = {"file": (path.name, path.open("rb"), "application/x-bittorrent")}
         if dry_run_guard(
             ctx,
             "POST /torrents/asynccreatetorrent",
@@ -383,9 +386,11 @@ def async_create(
             dry_run=dry_run,
         ):
             return
-        data: dict[str, Any] = client.post(
-            "/torrents/asynccreatetorrent", data=payload, files=files
-        )
+        with path.open("rb") as fh:
+            files = {"file": (path.name, fh, "application/x-bittorrent")}
+            data: dict[str, Any] = client.post(
+                "/torrents/asynccreatetorrent", data=payload, files=files
+            )
     else:
         if not magnet:
             raise typer.BadParameter("Either --magnet or --file is required")

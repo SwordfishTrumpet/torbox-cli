@@ -13,6 +13,7 @@ from torbox.commands._helpers import (
     _get_field,
     _is_quiet,
     _should_json,
+    confirm_bulk_destructive,
     confirm_destructive,
     dry_run_guard,
     handle_errors,
@@ -130,7 +131,10 @@ def control(
         ctx, "POST /webdl/controlwebdownload", payload=payload, dry_run=dry_run
     ):
         return
-    if not all:
+    if all:
+        if not confirm_bulk_destructive(operation, "web download", yes):
+            raise typer.Exit(code=0)
+    else:
         assert id is not None
         if not confirm_destructive(operation, "web download", id, yes):
             raise typer.Exit(code=0)

@@ -146,7 +146,9 @@ def test_filter_streams_limit() -> None:
 
 
 def test_stremio_client_init_no_key() -> None:
-    with pytest.raises(ValueError, match="API key is required"):
+    from torbox.exceptions import AuthenticationError
+
+    with pytest.raises(AuthenticationError, match="API key is required"):
         StremioClient(api_key=None)
 
 
