@@ -39,44 +39,57 @@ torbox --install-completion fish          # fish
 torbox torrents list
 ```
 
-## Features
+## Why torbox-cli?
 
-- Every TorBox v1 endpoint exposed as a subcommand
-- Human-friendly rich tables and panels, plus `--json` / `-j` for scripting and LLM agents
-- `--field` extraction for precise JSON queries
-- Flexible auth: CLI flag, env var, `.env` file, or XDG config profiles
-- Profile support for multiple accounts via INI-style config
-- `--auto-retry` with exponential backoff for rate limits
-- `--verbose` / `-v` for request diagnostics and timing
-- `--dry-run` on mutating commands to preview requests
-- `--compact` for single-line JSON output
-- Pagination on all list commands (`--offset`, `--limit`)
-- Shell completion (bash, zsh, fish)
-- Man page generation (`torbox docs --man`)
-- Config doctor (`torbox config doctor`) to inspect resolution order
+You already use the TorBox web UI to manage downloads. But every time you want to automate a workflow, integrate with a media server, or run a cron job, you're back to writing fragile curl scripts by hand.
 
-## Tips & Flags in Practice
+**torbox-cli** is the missing piece: a composable, scriptable interface to your entire TorBox account. Search for content, add downloads, monitor progress, and extract results — all from the command line, ready to pipe into your existing toolchain.
 
-Flags that appear in the [Features](#features) list but are easy to miss:
+## What You Can Do
+
+### Automate Your Entire Workflow
+- **Search → Add → Monitor** without opening a browser. Search torrent streams by title or IMDB ID, filter by quality and cache status, and add them directly to your queue.
+- **Rich, human-readable output** when you're exploring, **machine-readable JSON** when you're scripting.
+- **Preview every destructive action** with `--dry-run` before you commit.
+
+### Integrate Into Any Pipeline
+- **Structured JSON envelopes** via `--json` / `-j` — predictable output for `jq`, `xargs`, and LLM agents.
+- **Pluck nested fields** with `--field` so you never write `jq '.data[0].name'` by hand.
+- **Single-line JSON** with `--compact` for streaming through GNU parallel and other line-oriented tools.
+- **Pagination** (`--offset`, `--limit`) for iterating through massive datasets reliably.
+
+### Run Reliably in Production
+- **Auto-retry with exponential backoff** on rate limits — your cron jobs don't die at 2 AM because of a 429.
+- **Flexible auth** that adapts to any environment: CLI flag, env var, `.env` file, or XDG config profiles.
+- **Multi-account support** via INI-style profiles — switch accounts mid-script for batch operations across plans.
+- **Request observability** with `--verbose` / `-v` — full headers, timing, and retry logging when things go wrong.
+- **Config doctor** (`torbox config doctor`) exposes exactly which auth source is active and why.
+
+### Developer Experience
+- **Tab-complete everything** — full shell completion for bash, zsh, and fish.
+- **Offline docs** — generate man pages with `torbox docs --man`.
+- **Every TorBox v1 endpoint** exposed as an intuitive subcommand.
+
+## In Practice
 
 ```bash
-# Preview a mutating command without executing it
-torbox torrents create magnet:?xt=... --dry-run
+# One-liner: find cached 1080p streams, sort by seeders, pipe to jq
+torbox search streams "inception" --resolution 1080p --cached --sort seeders --json --compact | jq '.name'
 
-# Compact single-line JSON for piping to jq
-torbox torrents list --json --compact | jq '.data[].name'
+# Batch-create torrents from a file without surprises
+cat magnets.txt | xargs -I {} torbox torrents create {} --dry-run
 
-# Paginate long result sets
-torbox torrents list --offset 50 --limit 25
+# Multi-profile automation: switch accounts mid-script
+torbox --profile work torrents list --json --field data
 
-# Extract a specific field directly
-torbox torrents list --field data.0.name
+# Cron-safe: auto-retry with backoff so rate limits don't kill nightly jobs
+torbox torrents list --auto-retry --json --quiet > /var/log/torbox-backup.json
 
-# Combine --quiet with --json for silent machine output
-torbox general status --quiet --json
+# Debug a failing command in one flag
+torbox general status --verbose
 
-# Auto-retry with exponential backoff on rate limits
-torbox torrents list --auto-retry
+# Inspect why auth isn't resolving where you expect
+torbox config doctor
 ```
 
 ## Command Overview
