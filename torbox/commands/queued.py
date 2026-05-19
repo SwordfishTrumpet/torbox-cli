@@ -49,9 +49,45 @@ def list(
 
 @app.command(
     help=(
+        "POST /queued/addqueued — Add a download to the queue.\n\n"
+        "Example: torbox queued add torrent 42"
+    )
+)
+@handle_errors
+def add(
+    ctx: Context,
+    type: str = typer.Argument(..., help="torrent | usenet | webdownload"),
+    id: int = typer.Argument(..., help="Download ID to add to queue"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent without making the request"
+    ),
+) -> None:
+    type = type.lower()
+    if type not in {"torrent", "usenet", "webdownload"}:
+        raise typer.BadParameter("type must be one of: torrent, usenet, webdownload")
+    payload: dict[str, str | int] = {"type": type, "id": id}
+    if dry_run_guard(
+        ctx,
+        "POST /queued/addqueued",
+        payload=payload,
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post("/queued/addqueued", json=payload)
+    print_json_envelope(ctx, data, "queued add", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"Added {type} {id} to queue.", "Queued")
+
+
+@app.command(
+    help=(
         "POST /queued/controlqueued — Control queued item\n\n"
         "Example: torbox queued control 5 delete --yes"
-    )
+    ),
 )
 @handle_errors
 def control(

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **API parity commands** — `webdl requestdl`, `usenet export`, `webdl async-create`, `queued add`, `stream delete`, `user auth-device-poll`, `user auth-device-complete`, `torrents files`. These fill symmetric gaps where one download type had a feature the others lacked, or an API endpoint existed without a CLI command.
+
 ### Fixed
 - **StremioClient 429 retry exhaustion** — Fixed bug where a 429 rate-limit response on the final retry attempt would raise a generic `RuntimeError` instead of the actual `HTTPStatusError`.
 - **DRY violation: `format_size` duplication** — Removed duplicated `format_size` implementation from `search.py`; now imports from `utils.py`.

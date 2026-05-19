@@ -221,3 +221,47 @@ def auth_device_start(
         return
     if not _is_quiet(ctx):
         print_panel("Device auth flow started.", "Device Auth")
+
+
+@app.command(
+    help=(
+        "GET /user/auth/device/poll — Poll device auth status\n"
+        "Example: torbox user auth-device-poll dc123"
+    )
+)
+@handle_errors
+def auth_device_poll(
+    ctx: Context,
+    device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+) -> None:
+    client = _get_client(ctx)
+    params: dict[str, str | int] = {"device_code": device_code}
+    data: dict[str, Any] = client.public_get("/user/auth/device/poll", params=params)
+    print_json_envelope(ctx, data, "user auth-device-poll", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel("Device auth status polled.", "Device Auth")
+
+
+@app.command(
+    help=(
+        "POST /user/auth/device/complete — Complete device auth flow\n"
+        "Example: torbox user auth-device-complete dc123"
+    )
+)
+@handle_errors
+def auth_device_complete(
+    ctx: Context,
+    device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+) -> None:
+    client = _get_client(ctx)
+    payload: dict[str, str] = {"device_code": device_code}
+    data: dict[str, Any] = client.post("/user/auth/device/complete", json=payload)
+    print_json_envelope(ctx, data, "user auth-device-complete", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel("Device auth flow completed.", "Device Auth")

@@ -136,31 +136,36 @@ app.add_typer(
 app.add_typer(
     user.app,
     name="user",
-    help="User account, settings, transactions, search engines, auth flows",
+    help="User account, settings, transactions, search engines, device auth flows",
 )
 app.add_typer(
     torrents.app,
     name="torrents",
     help=(
-        "Torrent management: list, info, create, control, "
-        "checkcached, requestdl, export"
+        "Torrent management: list, info, files, create, control, "
+        "checkcached, requestdl, export, async-create, edit"
     ),
 )
 app.add_typer(
     usenet.app,
     name="usenet",
-    help="Usenet management: list, create, control, requestdl",
+    help=(
+        "Usenet management: list, create, control, requestdl, export, edit, checkcached"
+    ),
 )
 app.add_typer(
-    webdl.app, name="webdl", help="Web downloads: list, create, control, edit, hosters"
+    webdl.app,
+    name="webdl",
+    help=(
+        "Web downloads: list, create, async-create, control, "
+        "edit, requestdl, checkcached, hosters"
+    ),
 )
 app.add_typer(
     rss.app, name="rss", help="RSS: list feeds, items, create/edit/delete feeds"
 )
-app.add_typer(queued.app, name="queued", help="Queued downloads management and control")
-app.add_typer(
-    stream.app, name="stream", help="Create streams and fetch stream data for video"
-)
+app.add_typer(queued.app, name="queued", help="Queued downloads: list, add, control")
+app.add_typer(stream.app, name="stream", help="Stream management: create, data, delete")
 app.add_typer(
     notifications.app,
     name="notifications",

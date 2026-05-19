@@ -50,6 +50,66 @@ def list(
 
 @app.command(
     help=(
+        "POST /webdl/asynccreatewebdownload — Create web download asynchronously. "
+        "Returns instantly; errors delivered via notifications. "
+        "Example: torbox webdl async-create 'https://example.com/file.zip'"
+    )
+)
+@handle_errors
+def async_create(
+    ctx: Context,
+    link: str,
+    password: str | None = typer.Option(
+        None, "--password", help="Password if required"
+    ),
+    name: str | None = typer.Option(
+        None, "--name", help="Custom name for the download"
+    ),
+    as_queued: bool = typer.Option(False, "--as-queued", help="Add as queued download"),
+    add_only_if_cached: bool = typer.Option(
+        False, "--add-only-if-cached", help="Only add if cached"
+    ),
+    allow_zip: bool = typer.Option(
+        False, "--allow-zip", help="Allow zip format for downloads"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent without making the request"
+    ),
+) -> None:
+    client = _get_client(ctx)
+    payload: dict[str, str | int] = {"link": link}
+    if password:
+        payload["password"] = password
+    if name:
+        payload["name"] = name
+    if as_queued:
+        payload["as_queued"] = 1
+    if add_only_if_cached:
+        payload["add_only_if_cached"] = 1
+    if allow_zip:
+        payload["allow_zip"] = 1
+    if dry_run_guard(
+        ctx,
+        "POST /webdl/asynccreatewebdownload",
+        payload=payload,
+        dry_run=dry_run,
+    ):
+        return
+    data: dict[str, Any] = client.post("/webdl/asynccreatewebdownload", data=payload)
+    print_json_envelope(ctx, data, "webdl async-create", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    elif not _is_quiet(ctx):
+        print_panel(
+            "Async web download creation submitted. "
+            "Errors delivered via notifications.",
+            "Async Created",
+        )
+
+
+@app.command(
+    help=(
         "POST /webdl/createwebdownload — Create web download from link. "
         "Example: torbox webdl create 'https://example.com/file.zip'"
     )
@@ -210,9 +270,50 @@ def hosters(
 
 @app.command(
     help=(
+        "GET /webdl/requestdl — Request download link for webdl file. "
+        "Example: torbox webdl requestdl 20 1"
+    ),
+)
+@handle_errors
+def requestdl(
+    ctx: Context,
+    id: int,
+    file_id: int = typer.Argument(..., help="File ID within the web download"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    zip_link: bool = typer.Option(False, "--zip-link", help="Request a zip link"),
+    user_ip: str | None = typer.Option(None, "--user-ip", help="User IP address"),
+    redirect: bool = typer.Option(False, "--redirect", help="Return redirect link"),
+    append_name: bool = typer.Option(
+        False, "--append-name", help="Append filename to link"
+    ),
+) -> None:
+    client = _get_client(ctx)
+    params: dict[str, str | int] = {
+        "webdl_id": id,
+        "file_id": file_id,
+        "token": client.api_key,
+    }
+    if zip_link:
+        params["zip_link"] = 1
+    if user_ip:
+        params["user_ip"] = user_ip
+    if redirect:
+        params["redirect"] = 1
+    if append_name:
+        params["append_name"] = 1
+    data: dict[str, Any] = client.get("/webdl/requestdl", params=params)
+    print_json_envelope(ctx, data, "webdl requestdl", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    elif not _is_quiet(ctx):
+        print_panel("Download link requested.", f"Request DL {id}/{file_id}")
+
+
+@app.command(
+    help=(
         "GET /webdl/checkcached — Check if hash(es) are cached by MD5 of the link. "
         "Example: torbox webdl checkcached a1b2c3d4,e5f6 --format object"
-    )
+    ),
 )
 @handle_errors
 def checkcached(

@@ -124,6 +124,39 @@ def info(
 
 @app.command(
     help=(
+        "GET /torrents/mylist?id={id} — List files within a torrent. "
+        "Fetches torrent info and displays the files table. "
+        "Example: torbox torrents files 42"
+    )
+)
+@handle_errors
+def files(
+    ctx: Context,
+    id: int,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+) -> None:
+    """List files within a torrent by ID."""
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get(f"/torrents/mylist?id={id}")
+    print_json_envelope(ctx, data, "torrents files", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    item = data.get("data") if isinstance(data, dict) else data
+    if not isinstance(item, dict):
+        if not _is_quiet(ctx):
+            print_panel(str(data), f"Torrent {id}")
+        return
+    file_list = item.get("files")
+    if isinstance(file_list, list) and file_list:
+        if not _is_quiet(ctx):
+            print_table(file_list, f"Torrent {id} Files")
+    else:
+        if not _is_quiet(ctx):
+            print_panel("No files listed for this torrent.", f"Torrent {id}")
+
+
+@app.command(
+    help=(
         "POST /torrents/createtorrent — Create from magnet or file. "
         "Example: torbox torrents create --magnet 'magnet:?xt=...'"
     )

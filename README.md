@@ -98,13 +98,13 @@ torbox config doctor
 |-------|----------|
 | `general` | status, stats, changelogs, speedtest |
 | `search` | streams, library, popular, info |
-| `torrents` | list, info, create, control, checkcached (hashes, show), requestdl, export, async-create, edit |
-| `usenet` | list, create, control, edit, checkcached, requestdl |
-| `webdl` | list, create, control, edit, checkcached, hosters |
-| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, confirmation |
+| `torrents` | list, info, files, create, control, checkcached (hashes, show), requestdl, export, async-create, edit |
+| `usenet` | list, create, control, requestdl, export, edit, checkcached |
+| `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
+| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-poll, auth-device-complete, confirmation |
 | `rss` | list, items, create, edit, delete |
-| `queued` | list, control |
-| `stream` | create, data |
+| `queued` | list, add, control |
+| `stream` | create, data, delete |
 | `notifications` | list, rss, test, clear |
 | `integrations` | jobs, cancel |
 

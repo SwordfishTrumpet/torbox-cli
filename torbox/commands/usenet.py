@@ -149,9 +149,56 @@ def control(
 
 @app.command(
     help=(
+        "POST /usenet/nzbtofile — Export .nzb file. "
+        "Fetches the usenet download info, then downloads raw .nzb bytes. "
+        "Example: torbox usenet export 10 --output file.nzb"
+    )
+)
+@handle_errors
+def export(
+    ctx: Context,
+    id: int,
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Output file path (default: stdout)"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+) -> None:
+    """Export a .nzb file by ID. Fetches info first, then raw bytes."""
+    import sys
+    from pathlib import Path
+
+    client = _get_client(ctx)
+    # Step 1: get usenet download info.
+    info_data: dict[str, Any] = client.get(f"/usenet/mylist?id={id}")
+    item = info_data.get("data") if isinstance(info_data, dict) else info_data
+    if not isinstance(item, dict):
+        raise typer.BadParameter(f"Usenet download {id} not found or invalid response")
+    # Step 2: download raw .nzb bytes via nzb-to-file endpoint.
+    resp = client.post_bytes("/usenet/nzbtofile", json={"usenet_id": id})
+    if _should_json(ctx, json) or _get_field(ctx):
+        meta = {
+            "success": True,
+            "data": {
+                "id": id,
+                "size": len(resp.content),
+                "filename": output,
+            },
+        }
+        print_json_envelope(ctx, meta, "usenet export", local_json=json)
+        return
+    if output:
+        Path(output).write_bytes(resp.content)
+        if not _is_quiet(ctx):
+            print_panel(f"Saved {len(resp.content)} bytes to {output}", f"Export {id}")
+    else:
+        sys.stdout.buffer.write(resp.content)
+
+
+@app.command(
+    help=(
         "GET /usenet/requestdl — Request download link for usenet file. "
         "Example: torbox usenet requestdl 10 1"
-    )
+    ),
 )
 @handle_errors
 def requestdl(
