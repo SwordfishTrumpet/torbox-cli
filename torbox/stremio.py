@@ -35,6 +35,7 @@ class StremioClient:
         verbose: bool = False,
         auto_retry: bool = False,
         timeout: float = 30.0,
+        retries: int = 2,
     ) -> None:
         if not api_key:
             raise AuthenticationError(
@@ -44,6 +45,7 @@ class StremioClient:
         self.api_key = api_key
         self.verbose = verbose
         self.auto_retry = auto_retry
+        self.retries = retries
         self._client = httpx.Client(
             base_url=STREMIO_BASE,
             timeout=timeout,
@@ -145,18 +147,18 @@ class StremioClient:
             resp.raise_for_status()
             return dict(resp.json())
 
-    def _request(self, path: str, retries: int = 2) -> dict[str, Any]:
-        for attempt in range(retries + 1):
+    def _request(self, path: str) -> dict[str, Any]:
+        for attempt in range(self.retries + 1):
             try:
                 resp = self._client.get(path)
                 resp.raise_for_status()
                 return dict(resp.json())
             except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.NetworkError):
-                if attempt < retries:
+                if attempt < self.retries:
                     if self.verbose:
                         print(
                             f"[stremio] {path} -> network error "
-                            f"(attempt {attempt + 1}/{retries + 1})",
+                            f"(attempt {attempt + 1}/{self.retries + 1})",
                             file=sys.stderr,
                         )
                     time.sleep(0.5 * (2**attempt))
@@ -166,7 +168,7 @@ class StremioClient:
                 if (
                     exc.response.status_code == 429
                     and self.auto_retry
-                    and attempt < retries
+                    and attempt < self.retries
                 ):
                     retry_after = int(exc.response.headers.get("Retry-After", "5"))
                     if self.verbose:
@@ -231,6 +233,8 @@ def guessit_parse(filename: str) -> dict[str, Any]:
 def filter_streams(
     streams: list[dict[str, Any]],
     *,
+    season: int | None = None,
+    episode: int | None = None,
     resolution: str | None = None,
     cached: bool | None = None,
     min_size: int | None = None,
@@ -300,6 +304,16 @@ def filter_streams(
             continue
         if source and source.lower() not in src.lower():
             continue
+
+        if season is not None:
+            gi_season = gi.get("season")
+            if gi_season is not None and gi_season != season:
+                continue
+
+        if episode is not None:
+            gi_episode = gi.get("episode")
+            if gi_episode is not None and gi_episode != episode:
+                continue
 
         def _make_serializable(obj: Any) -> Any:
             if hasattr(obj, "name"):

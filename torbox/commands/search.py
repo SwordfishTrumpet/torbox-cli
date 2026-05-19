@@ -67,8 +67,16 @@ def _get_stremio_client(ctx: Context) -> StremioClient:
         profile=profile,
     )
     resolved_key = cfg.get("api_key")
+    timeout = cfg.get("timeout", 30.0)
+    retries = cfg.get("retries", 2)
 
-    return StremioClient(api_key=resolved_key, verbose=verbose, auto_retry=auto_retry)
+    return StremioClient(
+        api_key=resolved_key,
+        verbose=verbose,
+        auto_retry=auto_retry,
+        timeout=timeout,
+        retries=retries,
+    )
 
 
 def _is_imdb_id(value: str) -> bool:
@@ -263,7 +271,12 @@ def _parse_id_and_se(
 
 
 @app.callback(invoke_without_command=True)
-def search_callback(ctx: Context) -> None:
+def search_callback(
+    ctx: Context,
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
     """Search torrent streams and library [Unofficial — Stremio addon].
 
     Use subcommands:
@@ -273,6 +286,8 @@ def search_callback(ctx: Context) -> None:
     Warning: This uses TorBox's Stremio addon endpoints,
     which are unofficial and may change.
     """
+    if auto_retry and ctx.obj is not None:
+        ctx.obj["auto_retry"] = True
     if ctx.invoked_subcommand is not None:
         return
     raise typer.Exit()
@@ -304,6 +319,9 @@ def streams(
     ),
     json: bool = typer.Option(False, "--json", "-j"),
     field: str | None = typer.Option(None, "--field", "-f"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Search torrent streams for a movie, series, or anime.
 
@@ -319,6 +337,8 @@ def streams(
         torbox search streams tt0133093 --resolution 1080p --cached
         torbox search streams tt0133093 --min-seeders 100 --sort seeders
     """
+    if auto_retry and ctx.obj is not None:
+        ctx.obj["auto_retry"] = True
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 
@@ -368,12 +388,17 @@ def library(
     field: str | None = typer.Option(
         None, "--field", "-f", help="Extract dot-path field"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Search your TorBox library for files matching the query.
 
     Warning: This uses TorBox's Stremio addon endpoints,
     which are unofficial and may change.
     """
+    if auto_retry and ctx.obj is not None:
+        ctx.obj["auto_retry"] = True
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 
@@ -632,6 +657,8 @@ def _run_stream_search(
 
     streams_data = filter_streams(
         streams_data,
+        season=season,
+        episode=episode,
         resolution=resolution,
         cached=cached,
         min_size=min_bytes,
