@@ -11,6 +11,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     handle_errors,
     print_json_envelope,
@@ -34,7 +35,11 @@ def me(
         False, "--settings", help="Include settings in response"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     endpoint = "/user/me"
     if settings:
@@ -61,7 +66,11 @@ def settings(
     ctx: Context,
     body: str | None = typer.Option(None, "--body", help="JSON payload for PUT update"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     if body:
         import json as _json
@@ -95,7 +104,11 @@ def searchengines(
     ctx: Context,
     id: int | None = typer.Option(None, "--id", help="Specific search engine ID"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     endpoint = "/user/settings/searchengines"
     if id is not None:
@@ -120,7 +133,11 @@ def transactions(
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     data: dict[str, Any] = client.get("/user/transactions", params=params)
@@ -148,7 +165,11 @@ def transaction_pdf(
         None, "--output", "-o", help="Output file path (default: stdout)"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     import sys
     from pathlib import Path
 
@@ -186,7 +207,11 @@ def transaction_pdf(
 def confirmation(
     ctx: Context,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get("/user/getconfirmation")
     print_json_envelope(ctx, data, "user confirmation", local_json=json)
@@ -209,7 +234,11 @@ def auth_device_start(
         "Third Party App", "--app", help="App name shown on verification page"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {}
     if app:
@@ -234,7 +263,11 @@ def auth_device_poll(
     ctx: Context,
     device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"device_code": device_code}
     data: dict[str, Any] = client.public_get("/user/auth/device/poll", params=params)
@@ -256,7 +289,11 @@ def auth_device_complete(
     ctx: Context,
     device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str] = {"device_code": device_code}
     data: dict[str, Any] = client.post("/user/auth/device/complete", json=payload)

@@ -12,6 +12,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     confirm_destructive,
     dry_run_guard,
@@ -31,7 +32,11 @@ def list(
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
     id: int | None = typer.Option(None, "--id", help="Specific feed ID"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     if id is not None:
@@ -55,7 +60,11 @@ def items(
     ctx: Context,
     feed_id: int,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get(f"/rss/getfeeditems?rss_feed_id={feed_id}")
     print_json_envelope(ctx, data, "rss items", local_json=json)
@@ -100,7 +109,11 @@ def create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request payload and exit"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str | int] = {"url": url, "name": name}
     if do_regex:
@@ -158,7 +171,11 @@ def edit(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request payload and exit"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str | int] = {"rss_feed_id": id}
     if name:
         payload["name"] = name
@@ -197,7 +214,11 @@ def delete(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request payload and exit"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str | int] = {"rss_feed_id": id, "operation": "delete"}
     if dry_run_guard(ctx, "POST /rss/controlrss", payload=payload, dry_run=dry_run):
         return

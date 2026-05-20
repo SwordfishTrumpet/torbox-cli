@@ -10,6 +10,7 @@ from typer import Context
 from torbox.commands._helpers import (
     _get_client,
     _get_field,
+    _set_auto_retry,
     _should_json,
     handle_errors,
     print_json_envelope,
@@ -32,8 +33,12 @@ def status(
     field: str | None = typer.Option(
         None, "--field", "-f", help="Extract dot-path field"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Check API status (delegates to /stats since root / returns 404)."""
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.public_get("/stats")
     print_json_envelope(ctx, data, "general status", local_json=json, field=field)
@@ -52,7 +57,11 @@ def stats(
     field: str | None = typer.Option(
         None, "--field", "-f", help="Extract dot-path field"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.public_get("/stats")
     print_json_envelope(ctx, data, "general stats", local_json=json, field=field)
@@ -74,7 +83,11 @@ def changelogs(
     field: str | None = typer.Option(
         None, "--field", "-f", help="Extract dot-path field"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     if format.lower() == "rss":
         resp = client.public_get_bytes("/changelogs/rss")
@@ -111,7 +124,11 @@ def speedtest(
     ),
     region: str | None = typer.Option(None, "--region", help="Region code"),
     user_ip: str | None = typer.Option(None, "--user-ip", help="User IP address"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str] = {}
     if test_length:

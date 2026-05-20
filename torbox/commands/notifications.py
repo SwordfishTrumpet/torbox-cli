@@ -12,6 +12,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     dry_run_guard,
     handle_errors,
@@ -32,7 +33,11 @@ app = typer.Typer(help="Notifications management")
 def list(
     ctx: Context,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get("/notifications/mynotifications")
     print_json_envelope(ctx, data, "notifications list", local_json=json)
@@ -55,7 +60,11 @@ def list(
 def rss(
     ctx: Context,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     resp = client.get_bytes("/notifications/rss", params={"token": client.api_key})
     raw_text = resp.text
@@ -76,7 +85,11 @@ def rss(
 def test(
     ctx: Context,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.post("/notifications/test")
     print_json_envelope(ctx, data, "notifications test", local_json=json)
@@ -100,7 +113,11 @@ def clear(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request without sending"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if dry_run_guard(ctx, "POST /notifications/clear", payload={}, dry_run=dry_run):
         return
     if not yes:

@@ -492,6 +492,7 @@ def test_search_with_config_file_api_key(
     tmp_path: Any, httpx_mock: Any, monkeypatch: Any
 ) -> None:
     """Search commands resolve API key from .env config file."""
+    monkeypatch.delenv("TORBOX_API_KEY", raising=False)
     api_key = "config-file-key"
     env_file = tmp_path / ".env"
     env_file.write_text(f"TORBOX_API_KEY={api_key}\n")

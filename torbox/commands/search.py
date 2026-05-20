@@ -15,6 +15,7 @@ from typer.core import TyperGroup
 from torbox.commands._helpers import (
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     handle_errors,
     print_json_envelope,
@@ -286,8 +287,7 @@ def search_callback(
     Warning: This uses TorBox's Stremio addon endpoints,
     which are unofficial and may change.
     """
-    if auto_retry and ctx.obj is not None:
-        ctx.obj["auto_retry"] = True
+    _set_auto_retry(ctx, auto_retry)
     if ctx.invoked_subcommand is not None:
         return
     raise typer.Exit()
@@ -337,8 +337,7 @@ def streams(
         torbox search streams tt0133093 --resolution 1080p --cached
         torbox search streams tt0133093 --min-seeders 100 --sort seeders
     """
-    if auto_retry and ctx.obj is not None:
-        ctx.obj["auto_retry"] = True
+    _set_auto_retry(ctx, auto_retry)
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 
@@ -397,8 +396,7 @@ def library(
     Warning: This uses TorBox's Stremio addon endpoints,
     which are unofficial and may change.
     """
-    if auto_retry and ctx.obj is not None:
-        ctx.obj["auto_retry"] = True
+    _set_auto_retry(ctx, auto_retry)
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 
@@ -436,11 +434,14 @@ def popular(
     limit: int = typer.Option(10, "--limit", help="Max results to show"),
     json: bool = typer.Option(False, "--json", "-j"),
     field: str | None = typer.Option(None, "--field", "-f"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Browse popular movies or series from Cinemeta.
-
     After showing results, pick a number to search streams for that title.
     """
+    _set_auto_retry(ctx, auto_retry)
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 
@@ -514,11 +515,14 @@ def info(
     type: str = typer.Option("movie", "-t", "--type"),  # noqa: A002
     json: bool = typer.Option(False, "--json", "-j"),
     field: str | None = typer.Option(None, "--field", "-f"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Fetch and display full Cinemeta metadata for a title.
-
     Shows description, rating, cast, genres, runtime, and poster URL.
     """
+    _set_auto_retry(ctx, auto_retry)
     if type not in TYPE_CHOICES:
         raise typer.BadParameter(f"Type must be one of: {', '.join(TYPE_CHOICES)}")
 

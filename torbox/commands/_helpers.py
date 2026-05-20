@@ -65,6 +65,12 @@ def _is_verbose(ctx: Context) -> bool:
     return False
 
 
+def _set_auto_retry(ctx: Context, auto_retry: bool) -> None:
+    """Set auto-retry flag on context if enabled."""
+    if auto_retry and ctx.obj is not None:
+        ctx.obj["auto_retry"] = True
+
+
 def dry_run_guard(
     ctx: Context,
     action: str,

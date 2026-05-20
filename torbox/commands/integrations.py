@@ -11,6 +11,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     dry_run_guard,
     handle_errors,
@@ -32,7 +33,11 @@ def jobs(
     ctx: Context,
     hash: str,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get(f"/integration/jobs/{hash}")
     print_json_envelope(ctx, data, "integrations jobs", local_json=json)
@@ -60,7 +65,11 @@ def cancel(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request without sending"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if dry_run_guard(
         ctx,
         f"DELETE /integration/job/{job_id}",

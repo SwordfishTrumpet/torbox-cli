@@ -11,6 +11,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     dry_run_guard,
     handle_errors,
@@ -44,7 +45,11 @@ def create(
     chosen_resolution_index: int | None = typer.Option(
         None, "--chosen-resolution-index", help="Resolution index"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     type = validate_stream_type(type)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"id": id, "type": type}
@@ -79,7 +84,11 @@ def delete(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if not yes:
         answer = (
             input(f"Are you sure you want to delete stream token {token}? [y/N]: ")
@@ -124,7 +133,11 @@ def data(
     chosen_resolution_index: int | None = typer.Option(
         None, "--chosen-resolution-index", help="Resolution index"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"presigned_token": token, "token": client.api_key}
     if chosen_subtitle_index is not None:

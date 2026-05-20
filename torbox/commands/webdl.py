@@ -12,6 +12,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     confirm_bulk_destructive,
     confirm_destructive,
@@ -34,7 +35,11 @@ def list(
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     data: dict[str, Any] = client.get("/webdl/mylist", params=params)
@@ -76,7 +81,11 @@ def async_create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str | int] = {"link": link}
     if password:
@@ -132,7 +141,11 @@ def create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str | int] = {"link": link}
     if password:
@@ -174,7 +187,11 @@ def control(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if not operation:
         raise typer.BadParameter("--operation is required")
     operation = validate_operation(operation)
@@ -223,7 +240,11 @@ def edit(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str | int] = {"webdl_id": id}
     if name:
         payload["name"] = name
@@ -254,7 +275,11 @@ def edit(
 def hosters(
     ctx: Context,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     # Auth is optional for hosters; optional_get sends Bearer if available
     data: dict[str, Any] = client.optional_get("/webdl/hosters")
@@ -286,7 +311,11 @@ def requestdl(
     append_name: bool = typer.Option(
         False, "--append-name", help="Append filename to link"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {
         "webdl_id": id,
@@ -326,7 +355,11 @@ def checkcached(
         False, "--list-files", help="Include list of files in response"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"hash": ",".join(hashes)}
     if format:

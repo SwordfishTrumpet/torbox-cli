@@ -11,6 +11,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     confirm_bulk_destructive,
     confirm_destructive,
@@ -37,7 +38,11 @@ def list_usenet(
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     data: dict[str, Any] = client.get("/usenet/mylist", params=params)
@@ -72,7 +77,11 @@ def create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     # API schema expects "link" (not "nzb") for the NZB URL.
     payload: dict[str, str] = {"link": nzb}
@@ -111,7 +120,11 @@ def control(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request payload and exit"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if not operation:
         raise typer.BadParameter("--operation is required")
     operation = validate_operation(operation)
@@ -162,8 +175,12 @@ def export(
         None, "--output", "-o", help="Output file path (default: stdout)"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Export a .nzb file by ID. Fetches info first, then raw bytes."""
+    _set_auto_retry(ctx, auto_retry)
     import sys
     from pathlib import Path
 
@@ -212,7 +229,11 @@ def requestdl(
     append_name: bool = typer.Option(
         False, "--append-name", help="Append filename to link"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {
         "usenet_id": id,
@@ -254,7 +275,11 @@ def edit(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str | int] = {"usenet_download_id": id}
     if name:
         payload["name"] = name
@@ -292,7 +317,11 @@ def checkcached(
     list_files: bool = typer.Option(
         False, "--list-files", help="Include file details in result"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, Any] = {"hashes": list(hashes)}
     params: dict[str, str | int] = {}

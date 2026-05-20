@@ -12,6 +12,7 @@ from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
+    _set_auto_retry,
     _should_json,
     confirm_destructive,
     dry_run_guard,
@@ -33,7 +34,11 @@ def list(
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     data: dict[str, Any] = client.get("/queued/getqueued", params=params)
@@ -62,7 +67,11 @@ def add(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     type = type.lower()
     if type not in {"torrent", "usenet", "webdownload"}:
         raise typer.BadParameter("type must be one of: torrent, usenet, webdownload")
@@ -99,7 +108,11 @@ def control(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show request without sending"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     operation = validate_operation(operation)
     if dry_run_guard(
         ctx,

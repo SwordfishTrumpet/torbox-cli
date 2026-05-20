@@ -19,6 +19,7 @@ from torbox.commands._helpers import (
     _get_field,
     _is_quiet,
     _is_verbose,
+    _set_auto_retry,
     _should_json,
     confirm_bulk_destructive,
     confirm_destructive,
@@ -81,8 +82,12 @@ def list_torrents(
     offset: int = typer.Option(0, "--offset", help="Pagination offset"),
     limit: int = typer.Option(1000, "--limit", help="Pagination limit"),
     status: str | None = typer.Option(None, "--status", help="Filter by status"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """List torrents with optional pagination and status filter."""
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {"offset": offset, "limit": limit}
     if status:
@@ -109,7 +114,11 @@ def info(
     ctx: Context,
     id: int,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get(f"/torrents/mylist?id={id}")
     print_json_envelope(ctx, data, "torrents info", local_json=json)
@@ -134,8 +143,12 @@ def files(
     ctx: Context,
     id: int,
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """List files within a torrent by ID."""
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     data: dict[str, Any] = client.get(f"/torrents/mylist?id={id}")
     print_json_envelope(ctx, data, "torrents files", local_json=json)
@@ -174,7 +187,11 @@ def create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str | int] = {}
     if magnet:
@@ -233,7 +250,11 @@ def control(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     if not operation:
         raise typer.BadParameter("--operation is required")
     operation = validate_operation(operation)
@@ -285,7 +306,11 @@ def checkcached_hashes(
     batch: bool = typer.Option(
         False, "--batch", help="Use POST for unlimited hash checking"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     if batch:
         data: dict[str, Any] = client.post(
@@ -417,8 +442,7 @@ def checkcached_show(
     Warning: This uses TorBox's Stremio addon endpoints,
     which are unofficial and may change.
     """
-    if auto_retry and ctx.obj is not None:
-        ctx.obj["auto_retry"] = True
+    _set_auto_retry(ctx, auto_retry)
 
     quiet = _is_quiet(ctx)
 
@@ -599,7 +623,11 @@ def requestdl(
     append_name: bool = typer.Option(
         False, "--append-name", help="Append filename to link"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {
         "torrent_id": id,
@@ -641,8 +669,12 @@ def export(
         None, "--output", "-o", help="Output file path (default: stdout)"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
     """Export a .torrent file by ID. Fetches hash first, then raw bytes."""
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     # Step 1: get torrent hash from info endpoint.
     info_data: dict[str, Any] = client.get(f"/torrents/mylist?id={id}")
@@ -702,7 +734,11 @@ def async_create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str | int] = {}
     if magnet:
@@ -777,7 +813,11 @@ def edit(
         "--dry-run",
         help="Show what would be sent without making the request",
     ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
 ) -> None:
+    _set_auto_retry(ctx, auto_retry)
     payload: dict[str, Any] = {"torrent_id": id}
     if name is not None:
         payload["name"] = name
