@@ -1,6 +1,6 @@
 """Torrents commands.
 
-list, info, create, control, checkcached, requestdl, export, search,
+list, info, create, control, checkcached, requestdl, export,
 async-create, edit.
 """
 
@@ -13,12 +13,12 @@ from typing import Any
 import click
 import typer
 from typer import Context
+from typer.core import TyperGroup
 
 from torbox.commands._helpers import (
     _get_client,
     _get_field,
     _is_quiet,
-    _is_verbose,
     _set_auto_retry,
     _should_json,
     confirm_bulk_destructive,
@@ -29,16 +29,9 @@ from torbox.commands._helpers import (
     validate_operation,
 )
 from torbox.formatters import print_dict_panel, print_panel, print_table
-from torbox.stremio import (
-    StremioClient,
-    discover_episodes,
-    filter_streams,
-    stream_search_bulk,
-)
-from torbox.utils import parse_size as _parse_size_util
 
 
-class CheckcachedGroup(typer.core.TyperGroup):
+class CheckcachedGroup(TyperGroup):
     """Typer group that defaults to the 'hashes' subcommand."""
 
     def resolve_command(
@@ -60,10 +53,7 @@ app = typer.Typer(
 
 checkcached_app = typer.Typer(
     cls=CheckcachedGroup,
-    help=(
-        "Check cache status by infohash (hashes) or by IMDB ID (show). "
-        "Default subcommand is 'hashes'."
-    ),
+    help=("Check cache status by infohash (hashes). Default subcommand is 'hashes'."),
 )
 
 
@@ -327,282 +317,6 @@ def checkcached_hashes(
             print_dict_panel(item, "Cache Status")
         else:
             print_panel("Cache check completed.", "Check Cached")
-
-
-def _parse_episodes_filter(episodes: str | None) -> list[int] | None:
-    if not episodes:
-        return None
-    try:
-        return [int(e.strip()) for e in episodes.split(",") if e.strip()]
-    except ValueError:
-        raise typer.BadParameter(
-            f"Invalid episodes format: {episodes!r}. Use like 1,2,3"
-        )
-
-
-def _aggregate_episode(streams: list[dict[str, Any]]) -> dict[str, Any]:
-    """Aggregate stream metadata into per-episode summary."""
-    if not streams:
-        return {
-            "cached": False,
-            "streams_count": 0,
-            "cached_streams_count": 0,
-            "best_resolution": None,
-            "best_quality": None,
-            "best_source": None,
-            "best_seeders": 0,
-            "best_size": 0,
-        }
-    cached_streams = [s for s in streams if s.get("_parsed", {}).get("cached")]
-    target = cached_streams if cached_streams else streams
-    quality_order = {
-        "4k": 5,
-        "2160p": 5,
-        "1080p": 4,
-        "720p": 3,
-        "480p": 2,
-        "unknown": 0,
-    }
-    best = max(
-        target,
-        key=lambda s: quality_order.get(
-            s.get("_parsed", {}).get("resolution", "unknown").lower(),
-            0,
-        ),
-    )
-    parsed = best.get("_parsed", {})
-    return {
-        "cached": bool(cached_streams),
-        "streams_count": len(streams),
-        "cached_streams_count": len(cached_streams),
-        "best_resolution": parsed.get("resolution"),
-        "best_quality": parsed.get("quality"),
-        "best_source": parsed.get("source"),
-        "best_seeders": parsed.get("seeders", 0),
-        "best_size": best.get("behaviorHints", {}).get("videoSize", 0),
-    }
-
-
-@checkcached_app.command(
-    name="show",
-    help=(
-        "Check cache status for TV show episodes by IMDB ID. "
-        "Queries Stremio addon per-episode in parallel. "
-        "Example: torbox torrents checkcached show tt0944947 --season 1"
-    ),
-)
-@handle_errors
-def checkcached_show(
-    ctx: Context,
-    imdb_id: str = typer.Argument(..., help="IMDB ID (e.g. tt0944947)"),
-    season: int | None = typer.Option(None, "-s", "--season", help="Season number"),
-    episodes: str | None = typer.Option(
-        None,
-        "-e",
-        "--episodes",
-        help="Comma-separated episode numbers (e.g. 1,2,3)",
-    ),
-    resolution: str | None = typer.Option(None, "--resolution"),
-    cached: bool | None = typer.Option(None, "--cached/--not-cached"),
-    min_size: str | None = typer.Option(None, "--min-size"),
-    max_size: str | None = typer.Option(None, "--max-size"),
-    min_seeders: int | None = typer.Option(None, "--min-seeders"),
-    quality: str | None = typer.Option(None, "--quality"),
-    source: str | None = typer.Option(None, "--source"),
-    sort: str | None = typer.Option(None, "--sort"),
-    limit: int = typer.Option(
-        20, "--limit", help="Max streams to consider per episode"
-    ),
-    max_workers: int = typer.Option(
-        20, "--max-workers", help="Parallel Stremio request workers"
-    ),
-    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
-    field: str | None = typer.Option(
-        None,
-        "--field",
-        "-f",
-        help="Dot-path extract e.g. data.0.episode",
-    ),
-    auto_retry: bool = typer.Option(
-        False,
-        "--auto-retry",
-        help="Auto-retry on 429 rate limits with backoff",
-    ),
-) -> None:
-    """Check cache status for TV show episodes by IMDB ID.
-
-    Discovers episodes via Cinemeta, then queries the TorBox Stremio
-    addon for each episode in parallel. Aggregates per-episode cache
-    status, best resolution, quality, source, and seeders.
-
-    Supports all standard stream filters (--cached, --resolution,
-    --min-seeders, etc.) applied per-episode. Sorts episodes by
-    episode number, seeders, quality, or cached status.
-
-    Warning: This uses TorBox's Stremio addon endpoints,
-    which are unofficial and may change.
-    """
-    _set_auto_retry(ctx, auto_retry)
-
-    quiet = _is_quiet(ctx)
-
-    # 1. Discover episodes
-    if not quiet:
-        print(f"[dim]Discovering episodes for {imdb_id} via Cinemeta...[/dim]")
-    try:
-        all_episodes = discover_episodes(imdb_id, season=season)
-    except Exception as exc:
-        if not quiet:
-            print(f"[red]Failed to discover episodes: {exc}[/red]")
-        raise typer.Exit(code=1)
-
-    if not all_episodes:
-        if not quiet:
-            print(f"[yellow]No episodes found for {imdb_id}.[/yellow]")
-        raise typer.Exit(code=1)
-
-    # 2. Filter episodes
-    episode_filter = _parse_episodes_filter(episodes)
-    if episode_filter is not None:
-        all_episodes = [ep for ep in all_episodes if ep["episode"] in episode_filter]
-        if not all_episodes:
-            if not quiet:
-                print("[yellow]No episodes matched the requested filter.[/yellow]")
-            raise typer.Exit(code=1)
-
-    if season is None and len(all_episodes) > 52:
-        if not quiet:
-            print(
-                f"[yellow]Warning: {len(all_episodes)} episodes found without "
-                f"--season filter. This may be very slow. "
-                f"Use --season N to target a specific season.[/yellow]"
-            )
-
-    # 3. Build StremioClient
-    api_key = ctx.obj.get("api_key") if ctx.obj else None
-    config_path = ctx.obj.get("config") if ctx.obj else None
-    profile = ctx.obj.get("profile") if ctx.obj else None
-    verbose = _is_verbose(ctx)
-
-    from torbox.config import load_config
-
-    cfg = load_config(
-        api_key_override=api_key,
-        config_path=config_path,
-        profile=profile,
-    )
-    resolved_key = cfg.get("api_key")
-    timeout = cfg.get("timeout", 30.0)
-    retries = cfg.get("retries", 2)
-
-    client = StremioClient(
-        api_key=resolved_key,
-        verbose=verbose,
-        auto_retry=auto_retry,
-        timeout=timeout,
-        retries=retries,
-    )
-
-    # 4. Parallel stream search
-    if not quiet:
-        print(f"[dim]Querying {len(all_episodes)} episode(s) in parallel...[/dim]")
-    ep_list = [(ep["season"], ep["episode"]) for ep in all_episodes]
-    bulk_results = stream_search_bulk(
-        client,
-        imdb_id,
-        ep_list,
-        max_workers=max_workers,
-        verbose=verbose,
-    )
-
-    # 5. Parse size filters
-    min_bytes = _parse_size_util(min_size) if min_size else None
-    max_bytes = _parse_size_util(max_size) if max_size else None
-
-    # 6. Aggregate per-episode
-    rows: list[dict[str, Any]] = []
-    for ep in all_episodes:
-        s, e = ep["season"], ep["episode"]
-        streams = bulk_results.get((s, e), [])
-        filtered = filter_streams(
-            streams,
-            season=s,
-            episode=e,
-            resolution=resolution,
-            cached=cached,
-            min_size=min_bytes,
-            max_size=max_bytes,
-            min_seeders=min_seeders,
-            quality=quality,
-            source=source,
-            sort=sort,
-            limit=limit,
-        )
-        agg = _aggregate_episode(filtered)
-        rows.append(
-            {
-                "season": s,
-                "episode": e,
-                "title": ep.get("title", ""),
-                **agg,
-            }
-        )
-
-    # 7. Episode-level cached filter (applied after aggregation)
-    if cached is not None:
-        rows = [r for r in rows if r["cached"] == cached]
-
-    # 8. Sort episodes
-    if sort == "seeders":
-        rows.sort(key=lambda x: x["best_seeders"], reverse=True)
-    elif sort == "quality":
-        quality_order = {
-            "4k": 5,
-            "2160p": 5,
-            "1080p": 4,
-            "720p": 3,
-            "480p": 2,
-            "unknown": 0,
-        }
-        rows.sort(
-            key=lambda x: quality_order.get(
-                (x["best_resolution"] or "unknown").lower(),
-                0,
-            ),
-            reverse=True,
-        )
-    elif sort == "cached":
-        rows.sort(key=lambda x: (not x["cached"], x["episode"]))
-    else:
-        rows.sort(key=lambda x: (x["season"], x["episode"]))
-
-    # 9. Output
-    payload = {
-        "imdb_id": imdb_id,
-        "season": season,
-        "episodes": rows,
-    }
-    print_json_envelope(
-        ctx,
-        payload,
-        "torrents checkcached show",
-        local_json=json,
-        field=field,
-    )
-    if _should_json(ctx, json) or _get_field(ctx, field):
-        return
-
-    if not quiet and not rows:
-        print(f"[yellow]No cached streams found for {imdb_id}.[/yellow]")
-        return
-
-    if not quiet:
-        from torbox.formatters import print_episode_cache_table
-
-        title = f"Cache Status for {imdb_id}"
-        if season is not None:
-            title += f" — Season {season}"
-        print_episode_cache_table(rows, title=title)
 
 
 @app.command(

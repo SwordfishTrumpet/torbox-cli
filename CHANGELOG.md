@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`monitor` command** — Full-screen htop-style TUI dashboard showing live download activity across torrents, usenet, webdl, and queued. Uses Rich `Live` with `screen=True`, polls all 4 APIs concurrently via `ThreadPoolExecutor`, computes speed/ETA from progress deltas, and refreshes every 1s. Supports `--interval`, `--sort`, `--filter`, `--limit`, `--compact`.
 - **API parity commands** — `webdl requestdl`, `usenet export`, `webdl async-create`, `queued add`, `stream delete`, `user auth-device-poll`, `user auth-device-complete`, `torrents files`. These fill symmetric gaps where one download type had a feature the others lacked, or an API endpoint existed without a CLI command.
 
 ### Fixed
@@ -20,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Redundant imports** — Removed unnecessary `builtins` import in `usenet.py` and redundant local `from pathlib import Path` in `torrents.py`.
 - **Unused parameter** — Removed dead `_path` parameter from `formatters.py:extract_field`.
 - **DRY: `parse_size`** — Extracted size-parsing logic to `utils.parse_size` for reuse; `search.py` wraps it with CLI-specific error handling.
+- **Audit Round 3 (2026-05-20):** 8 bugs fixed across monitor, helpers, torrents, and tests. Highlights: renamed silently-skipped test (`keeps_api_progress`), removed dead dry-run code in `_helpers.py`, fixed `_normalize_items` falsy `downloaded=0` bug, `checkcached show` now emits JSON envelope on Cinemeta failures, deduplicated StremioClient config loading, and covered untested confirmation prompts for `stream delete` and `notifications clear`.
+- **Audit Round 3 tests:** 18 new tests added — torrents export edge cases, `extract_field` negative index, `format_envelope` edge cases, `print_error_json` direct unit test, `map_http_status` catchall codes, and confirmation prompt denial tests. Coverage maintained at 88%.
 
 ### Added
 - **`config_cmd` in package exports** — Added to `commands/__init__.py` imports and `__all__` for consistency.

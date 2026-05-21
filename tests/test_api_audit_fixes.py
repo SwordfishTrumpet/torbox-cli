@@ -425,14 +425,9 @@ def test_user_settings_full_fields() -> None:
         mega_password="secret",
         cdn_selection="default",
         append_filename_to_links=True,
-        stremio_quality=["1080p"],
-        stremio_resolution=["1920x1080"],
-        stremio_language=["en"],
-        stremio_cache=["1"],
         dashboard_filter={"status": "completed"},
     )
     assert us.email_notifications is True
-    assert us.stremio_quality == ["1080p"]
     assert us.dashboard_filter == {"status": "completed"}
 
 

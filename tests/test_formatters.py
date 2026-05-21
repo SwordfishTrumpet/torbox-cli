@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from rich.console import Console
 
 from torbox import formatters
-from torbox.formatters import extract_field, print_dict_panel, print_table
+from torbox.formatters import (
+    FieldMissingError,
+    extract_field,
+    print_dict_panel,
+    print_error_json,
+    print_table,
+)
 
 
 def _capture_console(func: Any, *args: Any, **kwargs: Any) -> str:
@@ -67,3 +74,29 @@ def test_print_dict_panel_snapshot() -> None:
     assert "progress" in text
     assert "100%" in text
     assert "Torrent Info" in text
+
+
+def test_extract_field_negative_index() -> None:
+    data = [1, 2, 3]
+    with pytest.raises(FieldMissingError, match="Cannot traverse list"):
+        extract_field(data, "-1")
+
+
+def test_print_error_json(capsys: Any) -> None:
+    from torbox.exceptions import TorBoxError
+
+    exc = TorBoxError("test error", exit_code=5)
+    print_error_json(exc)
+    captured = capsys.readouterr()
+    assert "success" in captured.err
+    assert "TorBoxError" in captured.err
+    assert "test error" in captured.err
+    assert "exit_code" in captured.err
+
+    # Test with non-TorBoxError (generic Exception)
+    exc2 = Exception("generic error")
+    print_error_json(exc2)
+    captured2 = capsys.readouterr()
+    assert "Exception" in captured2.err
+    assert "generic error" in captured2.err
+    assert "exit_code" in captured2.err

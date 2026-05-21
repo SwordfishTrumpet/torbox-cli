@@ -106,6 +106,7 @@ torbox config doctor
 | `queued` | list, add, control |
 | `stream` | create, data, delete |
 | `notifications` | list, rss, test, clear |
+| `monitor` | htop-style live TUI dashboard (torrents, usenet, webdl, queued) |
 | `integrations` | jobs, cancel |
 
 Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
@@ -277,9 +278,28 @@ Check cache status for **all episodes of a TV show** in a single command. This d
 
 ### Notes
 
-- Uses **parallel requests** (`--max-workers` controls concurrency, default 5).
+- Uses **parallel requests** (`--max-workers` controls concurrency, default 20).
 - Supports all standard stream filters: `--resolution`, `--cached/--not-cached`, `--min-seeders`, `--quality`, `--source`, `--min-size`, `--max-size`.
 - Backward compatible: `torbox torrents checkcached hash1 hash2` still works (defaults to `hashes` subcommand).
+
+### `checkcached show` Flags
+
+| Flag | Default | Description | Example |
+|------|---------|-------------|---------|
+| `-s, --season` | — | Season number | `--season 1` |
+| `-e, --episodes` | — | Comma-separated episode numbers | `--episodes 1,2,3` |
+| `--resolution` | — | Filter by resolution | `--resolution 1080p` |
+| `--cached` / `--not-cached` | — | Filter by cache status | `--cached` |
+| `--min-seeders` | — | Minimum seeders | `--min-seeders 50` |
+| `--quality` | — | Filter by quality tag | `--quality BLURAY` |
+| `--source` | — | Filter by source | `--source Web` |
+| `--min-size` | — | Minimum file size | `--min-size 1GB` |
+| `--max-size` | — | Maximum file size | `--max-size 10GB` |
+| `--sort` | `episode` | Sort: `episode`, `seeders`, `quality`, `cached` | `--sort quality` |
+| `--limit` | `20` | Max streams per episode | `--limit 50` |
+| `--max-workers` | `20` | Parallel Stremio request workers | `--max-workers 10` |
+| `-j, --json` | — | JSON output | `--json` |
+| `-f, --field` | — | Dot-path extract | `--field episodes.0.title` |
 
 ### `--genre` Filter — Valid Genres
 
@@ -308,6 +328,57 @@ Use exact case-insensitive matching: `--genre "Sci-Fi"`, `--genre action`, and `
 - Plot description (truncated to ~200 chars)
 
 This appears **before** the stream results table. It has no effect with `--json` or `--field`.
+
+## Live Monitor (`monitor`)
+
+Full-screen htop-style TUI dashboard showing live download activity across all TorBox categories. Polls all 4 list endpoints in parallel and refreshes every second.
+
+```bash
+# Start the monitor
+torbox monitor
+
+# Custom refresh interval and sort
+torbox monitor --interval 2 --sort speed
+
+# Filter by name substring
+torbox monitor --filter linux
+
+# Fewer columns for small terminals
+torbox monitor --compact
+```
+
+### What You See
+
+```
+ TorBox Monitor   Active: 7   DL: 45.2 MB/s   Sort: status   Ctrl-C quit
+
+ Torrents (3)
+  ID  Name              Status  Size      Progress   Speed     ETA
+  42  Game of Thrones   DL      8.2 GB    ████░ 67%  12.3MB/s  3m42s
+  15  Ubuntu 22.04      SD      4.5 GB    █████100%    -        -
+
+ Usenet (2)
+  ID  Name              Status  Size      Progress   Speed     ETA
+  10  Linux ISO          DL      2.1 GB    ██░░░ 34%   5.1MB/s  5m12s
+
+ Web Downloads (1) / Queued (1)
+  ID  Name              Status  Size      Progress   Speed     ETA
+ 20   file.zip           DL      500 MB    ░░░░░ 12%   2.3MB/s  3m10s
+  5   Music Album       WA         -         -          -        -
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-i, --interval` | `1.0` | Refresh interval in seconds |
+| `-s, --sort` | `status` | Sort column: status, name, size, speed, progress |
+| `-f, --filter` | — | Filter items by name or status substring |
+| `-l, --limit` | `20` | Max items per category |
+| `--compact` | — | Hide type badge, speed, and ETA columns |
+| `--auto-retry` | — | Auto-retry on rate limits |
+
+Press **Ctrl-C** to exit. The terminal is restored cleanly.
 
 ## Profiles (Multiple Accounts)
 

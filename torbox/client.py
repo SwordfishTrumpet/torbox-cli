@@ -63,7 +63,7 @@ class TorBoxClient:
         endpoint: str,
         *,
         auth: bool | str = True,
-        return_raw: Literal[False] = False,
+        return_raw: Literal[False],
         **kwargs: Any,
     ) -> dict[str, Any]: ...
 
@@ -74,7 +74,7 @@ class TorBoxClient:
         endpoint: str,
         *,
         auth: bool | str = True,
-        return_raw: Literal[True] = True,
+        return_raw: Literal[True],
         **kwargs: Any,
     ) -> httpx.Response: ...
 

@@ -50,10 +50,6 @@ class UserSettings(BaseModel):
     mega_password: str | None = None
     cdn_selection: str | None = None
     append_filename_to_links: bool | None = None
-    stremio_quality: list[str] | None = None
-    stremio_resolution: list[str] | None = None
-    stremio_language: list[str] | None = None
-    stremio_cache: list[str] | None = None
     dashboard_filter: dict[str, Any] | None = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

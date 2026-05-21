@@ -15,10 +15,10 @@ from torbox.commands import (
     config_cmd,
     general,
     integrations,
+    monitor,
     notifications,
     queued,
     rss,
-    search,
     stream,
     torrents,
     usenet,
@@ -177,9 +177,12 @@ app.add_typer(
     help="Integrations management — cloud upload jobs (jobs, cancel)",
 )
 app.add_typer(
-    search.app,
-    name="search",
-    help="Search torrent streams and library [Unofficial — Stremio addon]",
+    monitor.app,
+    name="monitor",
+    help=(
+        "Live TUI monitor — htop-style activity dashboard"
+        " (torrents, usenet, webdl, queued)"
+    ),
 )
 
 

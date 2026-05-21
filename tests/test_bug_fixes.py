@@ -359,33 +359,3 @@ def test_missing_config_file_raises_error() -> None:
         env={"TORBOX_API_KEY": "dummy"},
     )
     assert result.exit_code != 0
-
-
-# --- HIGH-1: Genre filtering with string genres ---
-
-
-def test_genre_filter_string_genres() -> None:
-    """Genre filter should work when meta has genre as a string, not a list."""
-    from unittest.mock import patch
-
-    from torbox.commands.search import _resolve_to_imdb
-
-    metas = [
-        {"id": "tt001", "name": "Action Movie", "genre": "Action"},
-        {"id": "tt002", "name": "Drama Movie", "genre": "Drama"},
-    ]
-    mock_result = {"metas": metas}
-
-    with patch(
-        "torbox.commands.search.StremioClient.cinemeta_search", return_value=mock_result
-    ):
-        result = _resolve_to_imdb("test", "movie", first=True, genre="Action")
-        assert result == "tt001"
-
-        result2 = _resolve_to_imdb("test", "movie", first=True, genre="Drama")
-        assert result2 == "tt002"
-
-        result3 = _resolve_to_imdb(
-            "test", "movie", first=True, quiet=True, genre="Horror"
-        )
-        assert result3 is None

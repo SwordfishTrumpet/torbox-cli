@@ -89,10 +89,11 @@ def test_map_error_code_unknown_defaults_to_server_error() -> None:
 @pytest.mark.parametrize(
     ("status", "exc_class", "exit_code"),
     [
-        (429, RateLimitError, 4),
+        (401, AuthenticationError, 2),
         (403, AuthenticationError, 2),
         (404, NotFoundError, 6),
         (400, ValidationError, 1),
+        (429, RateLimitError, 4),
         (500, ServerError, 3),
         (502, ServerError, 3),
         (503, ServerError, 3),
@@ -133,6 +134,33 @@ def test_format_envelope_error_case() -> None:
     assert envelope["error"] == "BAD_TOKEN"
     assert envelope["detail"] == "Invalid token"
     assert envelope["exit_code"] == 2
+
+
+def test_format_envelope_data_none() -> None:
+    envelope = format_envelope(None, "torrents list")
+    assert envelope["data"] is None
+    assert envelope["success"] is True
+
+
+def test_format_envelope_data_empty_list() -> None:
+    envelope = format_envelope([], "usenet list")
+    assert envelope["data"] == []
+    assert envelope["success"] is True
+
+
+def test_format_envelope_duration_ms_none() -> None:
+    envelope = format_envelope({"x": 1}, "test", duration_ms=0.0)
+    assert envelope["meta"]["request_duration_ms"] == 0.0
+
+
+def test_map_http_status_catchall() -> None:
+    """Non-special HTTP status codes fall to ClientError."""
+    from torbox.exceptions import ClientError
+
+    for code in (405, 408, 409, 410, 422):
+        exc = map_http_status(code, "detail")
+        assert isinstance(exc, ClientError)
+        assert exc.exit_code == 1
 
 
 def test_general_status_json_envelope(httpx_mock: Any) -> None:

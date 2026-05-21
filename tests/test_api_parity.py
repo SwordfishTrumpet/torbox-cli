@@ -320,6 +320,15 @@ class TestNotifications:
         )
         assert result.exit_code == 0
 
+    def test_clear_prompt_denied(self, monkeypatch: Any) -> None:
+        monkeypatch.setattr("builtins.input", lambda _: "n")
+        result = runner.invoke(
+            app,
+            ["notifications", "clear"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+
 
 class TestIntegrations:
     def test_jobs(self, httpx_mock: Any) -> None:

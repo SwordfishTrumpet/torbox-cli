@@ -198,6 +198,82 @@ def test_stream_delete_dry_run() -> None:
     assert "DELETE /stream/deletestream" in result.output
 
 
+def test_stream_delete_prompt_denied(monkeypatch: Any) -> None:
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    result = runner.invoke(
+        app,
+        ["stream", "delete", "abc123"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 0
+
+
+# =============================================================================
+# torrents export edge cases
+# =============================================================================
+
+
+def test_torrents_export_invalid_info(httpx_mock: Any) -> None:
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/mylist?id=42",
+        json={"success": True, "data": "invalid"},
+    )
+    result = runner.invoke(
+        app, ["torrents", "export", "42", "--json"], env={"TORBOX_API_KEY": "dummy"}
+    )
+    assert result.exit_code != 0
+    assert "not found or invalid response" in result.output
+
+
+def test_torrents_export_no_hash(httpx_mock: Any) -> None:
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/mylist?id=42",
+        json={"success": True, "data": {"id": 42, "name": "Test", "hash": ""}},
+    )
+    result = runner.invoke(
+        app, ["torrents", "export", "42", "--json"], env={"TORBOX_API_KEY": "dummy"}
+    )
+    assert result.exit_code != 0
+    assert "no hash available" in result.output
+
+
+def test_torrents_export_json(httpx_mock: Any) -> None:
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/mylist?id=42",
+        json={"success": True, "data": {"id": 42, "hash": "abc123"}},
+    )
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/magnettofile",
+        content=b"torrent\x00data",
+    )
+    result = runner.invoke(
+        app, ["torrents", "export", "42", "--json"], env={"TORBOX_API_KEY": "dummy"}
+    )
+    assert result.exit_code == 0
+    out = json.loads(result.output)
+    assert out["success"] is True
+    assert out["data"]["data"]["hash"] == "abc123"
+
+
+def test_torrents_export_to_file(httpx_mock: Any, tmp_path: Any) -> None:
+    out_path = tmp_path / "test.torrent"
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/mylist?id=42",
+        json={"success": True, "data": {"id": 42, "hash": "abc123"}},
+    )
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/torrents/magnettofile",
+        content=b"torrent\x00data",
+    )
+    result = runner.invoke(
+        app,
+        ["torrents", "export", "42", "--output", str(out_path)],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 0
+    assert out_path.read_bytes() == b"torrent\x00data"
+
+
 # =============================================================================
 # queued add
 # =============================================================================

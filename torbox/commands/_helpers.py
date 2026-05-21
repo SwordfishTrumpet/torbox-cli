@@ -81,7 +81,7 @@ def dry_run_guard(
 
     Callers should skip the actual request when this returns True.
     """
-    if dry_run or (ctx.obj and ctx.obj.get("dry_run")):
+    if dry_run:
         print(f"[dry-run] {action}")
         if payload:
             print(f"[dry-run] payload: {payload}")
