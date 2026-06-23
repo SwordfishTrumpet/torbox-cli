@@ -449,8 +449,6 @@ torbox config doctor --json   # machine-readable output
 
 - [DISCLAIMER.md](DISCLAIMER.md) — legal disclaimer and third-party service notices
 - [CHANGELOG.md](CHANGELOG.md) — version history and release notes
-- [AGENTS.md](AGENTS.md) — architecture notes and integration constraints
-- [TODO.md](TODO.md) — known issues and planned improvements
 - [TorBox API Documentation](https://torbox.app/)
 - [TorBox Terms of Service](https://torbox.app/terms)
 
