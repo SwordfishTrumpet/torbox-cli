@@ -382,8 +382,9 @@ def test_load_ini_profile_missing_section() -> None:
         _clear_torbox_env()
 
 
-def test_load_config_with_profile() -> None:
+def test_load_config_with_profile(monkeypatch: Any, tmp_path: Path) -> None:
     _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
     with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
         f.write("[default]\nTORBOX_API_KEY=default-key\n")
         f.write("[work]\nTORBOX_API_KEY=work-key\nTORBOX_TIMEOUT=60\n")
@@ -398,9 +399,10 @@ def test_load_config_with_profile() -> None:
         _clear_torbox_env()
 
 
-def test_load_config_profile_lowest_priority() -> None:
+def test_load_config_profile_lowest_priority(monkeypatch: Any, tmp_path: Path) -> None:
     """Env var should override profile settings."""
     _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
     with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
         f.write("[work]\nTORBOX_API_KEY=file-key\n")
         path = Path(f.name)
@@ -419,8 +421,9 @@ def test_load_config_profile_lowest_priority() -> None:
         _clear_torbox_env()
 
 
-def test_load_config_profile_invalid_timeout() -> None:
+def test_load_config_profile_invalid_timeout(monkeypatch: Any, tmp_path: Path) -> None:
     _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
     with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
         f.write("[bad]\nTORBOX_TIMEOUT=not-a-number\n")
         path = Path(f.name)
@@ -435,8 +438,9 @@ def test_load_config_profile_invalid_timeout() -> None:
         _clear_torbox_env()
 
 
-def test_load_config_profile_invalid_retries() -> None:
+def test_load_config_profile_invalid_retries(monkeypatch: Any, tmp_path: Path) -> None:
     _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
     with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
         f.write("[bad]\nTORBOX_RETRIES=999\n")
         path = Path(f.name)
