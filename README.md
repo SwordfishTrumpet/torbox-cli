@@ -1,10 +1,73 @@
 # torbox-cli
 
-A full-featured Python CLI wrapper for the [TorBox API v1](https://torbox.app).
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)](https://github.com/astral-sh/ruff)
+[![Typed: mypy](https://img.shields.io/badge/typed-mypy%20--strict-0395DE.svg)](https://mypy-lang.org/)
+[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC.svg)](https://docs.pytest.org/)
+[![Coverage](https://img.shields.io/badge/coverage-%3E%3E%2065%25-yellow.svg)](pyproject.toml)
+
+A full-featured Python CLI wrapper for the [TorBox API v1](https://torbox.app) — manage torrents, usenet downloads, web downloads, RSS feeds, and more, directly from your terminal.
 
 > **Legal Disclaimer:** This project is an **unofficial, third-party, open-source command-line interface** for the TorBox API. It is **not affiliated with, endorsed by, sponsored by, or connected to TorBox** or its parent/operating entities in any capacity. The name "TorBox" and any associated trademarks are the property of their respective owners. This tool is provided "as is" without warranty of any kind, express or implied. Use of this CLI is at your own risk and subject to the TorBox Terms of Service and API usage policies.
 
-## Installation
+---
+
+## About
+
+You already use the TorBox web UI to manage downloads. But every time you want to automate a workflow, integrate with a media server, or run a cron job, you're back to writing fragile curl scripts by hand.
+
+**torbox-cli** is the missing piece: a composable, scriptable interface to your entire TorBox account. Add torrents, monitor progress, check cache status, manage RSS feeds, export files, and extract results — all from the command line, ready to pipe into your existing toolchain.
+
+### Core Features
+
+- **Full TorBox v1 API coverage** — torrents, usenet, web downloads, RSS, queued downloads, streaming, notifications, integrations, and user account management
+- **Dual output modes** — rich, human-readable tables and panels for interactive use; structured JSON envelopes for `jq`, `xargs`, and LLM agents
+- **Dot-path field extraction** (`--field`) — pluck nested fields from API responses without writing custom parsers
+- **Compact JSON mode** (`--compact`) — single-line JSON for streaming through line-oriented tools like GNU parallel
+- **Auto-retry with exponential backoff** — your cron jobs survive 429 rate limits automatically
+- **Multi-source authentication** — CLI flag, environment variable, `.env` file, XDG config, or INI-style profiles for multi-account workflows
+- **Dry-run preview** (`--dry-run`) — preview every destructive mutation before committing
+- **Request observability** (`--verbose` / `-v`) — full request/response timing and diagnostic logging to stderr
+- **Config doctor** (`torbox config doctor`) — inspect exactly which auth source is active and why
+- **Shell completions** — bash, zsh, and fish tab-completion out of the box
+- **Offline man pages** (`torbox docs --man`) — generate troff man pages for offline reference
+- **Live TUI monitor** (`torbox monitor`) — htop-style real-time dashboard across all download categories
+- **Pagination** (`--offset`, `--limit`) — iterate through large datasets reliably
+
+---
+
+## Architecture & Tech Stack
+
+```
+Command (typer) → Helpers → Client (httpx) → API
+                              ↓
+                      Formatters (rich / JSON)
+```
+
+The CLI follows a layered design:
+
+| Layer | Role | Key Libraries |
+|---|---|---|
+| **CLI** | Command definitions, argument parsing, input validation | [typer](https://typer.tiangolo.com/) 0.25+, [click](https://click.palletsprojects.com/) 8.0+ |
+| **Client** | HTTP transport, authentication, retry logic, rate-limit handling | [httpx](https://www.python-httpx.org/) 0.28+ |
+| **Models** | Request/response schema validation | [pydantic](https://docs.pydantic.dev/) 2.13+ |
+| **Formatters** | Human-readable (rich) and machine-readable (JSON) output | [rich](https://rich.readthedocs.io/) 15.0+ |
+| **Config** | Hierarchical config loading with multi-profile support | [python-dotenv](https://github.com/theskumar/python-dotenv) 1.2+ |
+
+**Runtime requirements:** Python 3.10+
+**Optional:** `guessit` (bundled) for rich torrent filename parsing
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10 or later
+- A [TorBox](https://torbox.app) account with an API key
+
+### Installation
 
 ```bash
 pipx install torbox-cli
@@ -16,89 +79,70 @@ Or with `uv`:
 uv tool install torbox-cli
 ```
 
-## Requirements
-
-- **Python 3.10+**
-- Optional: `guessit` (bundled) for rich torrent filename parsing
-
-## Quick Start
+### Verify Installation
 
 ```bash
-export TORBOX_API_KEY=your-key
-
-# Check version and auth
 torbox --version
 torbox general status --json
+```
 
-# Enable shell completion
-source <(torbox --show-completion bash)   # bash
-source <(torbox --show-completion zsh)    # zsh
-torbox --install-completion fish          # fish
+### Configure Your API Key
 
-# List your torrents
+Set your API key using one of these methods (listed in priority order):
+
+**1. CLI flag** (highest priority):
+
+```bash
+torbox --api-key tb-your-key torrents list
+```
+
+**2. Environment variable:**
+
+```bash
+export TORBOX_API_KEY=tb-your-key
 torbox torrents list
 ```
 
-## Why torbox-cli?
-
-You already use the TorBox web UI to manage downloads. But every time you want to automate a workflow, integrate with a media server, or run a cron job, you're back to writing fragile curl scripts by hand.
-
-**torbox-cli** is the missing piece: a composable, scriptable interface to your entire TorBox account. Search for content, add downloads, monitor progress, and extract results — all from the command line, ready to pipe into your existing toolchain.
-
-## What You Can Do
-
-### Automate Your Entire Workflow
-- **Search → Add → Monitor** without opening a browser. Search torrent streams by title or IMDB ID, filter by quality and cache status, and add them directly to your queue.
-- **Rich, human-readable output** when you're exploring, **machine-readable JSON** when you're scripting.
-- **Preview every destructive action** with `--dry-run` before you commit.
-
-### Integrate Into Any Pipeline
-- **Structured JSON envelopes** via `--json` / `-j` — predictable output for `jq`, `xargs`, and LLM agents.
-- **Pluck nested fields** with `--field` so you never write `jq '.data[0].name'` by hand.
-- **Single-line JSON** with `--compact` for streaming through GNU parallel and other line-oriented tools.
-- **Pagination** (`--offset`, `--limit`) for iterating through massive datasets reliably.
-
-### Run Reliably in Production
-- **Auto-retry with exponential backoff** on rate limits — your cron jobs don't die at 2 AM because of a 429.
-- **Flexible auth** that adapts to any environment: CLI flag, env var, `.env` file, or XDG config profiles.
-- **Multi-account support** via INI-style profiles — switch accounts mid-script for batch operations across plans.
-- **Request observability** with `--verbose` / `-v` — full headers, timing, and retry logging when things go wrong.
-- **Config doctor** (`torbox config doctor`) exposes exactly which auth source is active and why.
-
-### Developer Experience
-- **Tab-complete everything** — full shell completion for bash, zsh, and fish.
-- **Offline docs** — generate man pages with `torbox docs --man`.
-- **Every TorBox v1 endpoint** exposed as an intuitive subcommand.
-
-## In Practice
+**3. `.env` file** in the current directory:
 
 ```bash
-# One-liner: find cached 1080p streams, sort by seeders, pipe to jq
-torbox search streams "inception" --resolution 1080p --cached --sort seeders --json --compact | jq '.name'
-
-# Batch-create torrents from a file without surprises
-cat magnets.txt | xargs -I {} torbox torrents create {} --dry-run
-
-# Multi-profile automation: switch accounts mid-script
-torbox --profile work torrents list --json --field data
-
-# Cron-safe: auto-retry with backoff so rate limits don't kill nightly jobs
-torbox torrents list --auto-retry --json --quiet > /var/log/torbox-backup.json
-
-# Debug a failing command in one flag
-torbox general status --verbose
-
-# Inspect why auth isn't resolving where you expect
-torbox config doctor
+echo "TORBOX_API_KEY=tb-your-key" > .env
+chmod 600 .env
+torbox torrents list
 ```
 
-## Command Overview
+**4. XDG config file** at `~/.config/torbox-cli/config.env`:
+
+```bash
+mkdir -p ~/.config/torbox-cli
+echo "TORBOX_API_KEY=tb-your-key" > ~/.config/torbox-cli/config.env
+chmod 600 ~/.config/torbox-cli/config.env
+```
+
+**5. Legacy config** at `~/.torbox-cli.env`.
+
+**6. INI-style profiles** (lowest priority, see [profiles](#profiles-multiple-accounts) below).
+
+> **Tip:** Run `torbox config doctor` at any time to inspect which auth source is active.
+
+### Enable Shell Completion
+
+```bash
+source <(torbox --show-completion bash)   # bash
+source <(torbox --show-completion zsh)    # zsh
+torbox --install-completion fish          # fish
+```
+
+---
+
+## Usage & Configuration
+
+### Command Overview
 
 | Group | Commands |
 |-------|----------|
 | `general` | status, stats, changelogs, speedtest |
-| `search` | streams, library, popular, info |
-| `torrents` | list, info, files, create, control, checkcached (hashes, show), requestdl, export, async-create, edit |
+| `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, async-create, edit |
 | `usenet` | list, create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
 | `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-poll, auth-device-complete, confirmation |
@@ -111,225 +155,187 @@ torbox config doctor
 
 Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
 
-## Search (Stremio Addon — Unofficial)
+### Global Flags
 
-The `search` group uses TorBox's **Stremio addon endpoints** to find torrent streams and browse metadata. These are unofficial endpoints that may change without notice.
-
-> **Note:** Search requires a TorBox API key. Configure it via `TORBOX_API_KEY`, `--api-key`, or a config file.
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `streams` | Search torrent streams by title or IMDB ID |
-| `library` | Search your TorBox library by filename |
-| `popular` | Browse popular/trending titles from Cinemeta |
-| `info` | Show full metadata (plot, rating, cast, etc.) for an IMDB ID |
-
-### `streams` — Search Torrent Streams
-
-Search for torrent streams by **title** (auto-resolved via Cinemeta) or **direct IMDB ID**.
+These flags are available on every command and must be placed **before** the subcommand:
 
 ```bash
-# Search by title (interactive Cinemeta picker)
-torbox search streams "the matrix"
-
-# Search by IMDB ID directly
-torbox search streams tt0133093
-
-# Series with season/episode
-torbox search streams tt0944947 --season 1 --episode 1
-torbox search streams tt0944947:1:1          # colon notation shorthand
+torbox --json torrents list          # JSON output
+torbox --field data.data.0.name torrents list  # Extract nested field
+torbox --compact --json torrents list    # Single-line JSON
+torbox --verbose torrents list       # Request diagnostics to stderr
+torbox --quiet torrents list         # Suppress human output
+torbox --auto-retry torrents list    # Auto-retry on 429 rate limits
+torbox --profile work torrents list  # Use named profile
+torbox --api-key tb-key torrents list    # Override API key
 ```
 
-#### Stream Filtering Flags
-
-| Flag | Description | Example |
-|------|-------------|---------|
-| `-t, --type` | Content type: `movie`, `series`, `anime` | `--type series` |
-| `-s, --season` | Season number (series only) | `--season 2` |
-| `-e, --episode` | Episode number (series only) | `--episode 5` |
-| `--first` | Auto-select first Cinemeta match (skip interactive) | `--first` |
-| `--resolution` | Filter by resolution: `1080p`, `720p`, `4k`, etc. | `--resolution 1080p` |
-| `--cached` | Only show cached (Instant) streams | `--cached` |
-| `--not-cached` | Only show non-cached streams | `--not-cached` |
-| `--min-size` | Minimum file size | `--min-size 1GB` |
-| `--max-size` | Maximum file size | `--max-size 10GB` |
-| `--min-seeders` | Minimum seeders count | `--min-seeders 50` |
-| `--quality` | Filter by quality tag (e.g., `BLURAY`, `WEB-DL`) | `--quality BLURAY` |
-| `--source` | Filter by source (e.g., `Blu-ray`, `Web`) | `--source Web` |
-| `--sort` | Sort by: `seeders`, `size`, `quality` | `--sort seeders` |
-| `--limit` | Max results to display (default: 20) | `--limit 50` |
-| `--genre` | Filter Cinemeta results by genre (see list below) | `--genre Action` |
-| `--details` | Show metadata panel (rating, runtime, plot) before streams | `--details` |
-| `-j, --json` | Output raw JSON | `--json` |
-| `-f, --field` | Extract specific field from JSON | `--field streams.0.name` |
-
-#### Examples
+### Common Workflows
 
 ```bash
-# High-quality cached streams only
-torbox search streams tt0133093 --resolution 1080p --cached --sort seeders
+# List your torrents (human-readable)
+torbox torrents list
 
-# Big files with lots of seeders
-torbox search streams "interstellar" --first --min-size 5GB --min-seeders 100
+# List torrents as JSON, pipe to jq
+torbox torrents list --json | jq '.data.data[].name'
 
-# Auto-resolve title, filter by genre, show metadata
-torbox search streams "action movie" --first --genre Action --details
+# Extract a single field from the first result
+torbox --field data.data.0.name --compact --json torrents list
 
-# JSON output for scripting
-torbox search streams tt0133093 --json --field streams
+# Filter by status with pagination
+torbox torrents list --status completed --limit 10 --offset 0
+
+# Show detailed info for a specific torrent
+torbox torrents info 42
+
+# List files within a torrent
+torbox torrents files 42
+
+# Create a torrent from a magnet link (dry-run first)
+torbox torrents create --magnet 'magnet:?xt=urn:btih:...' --dry-run
+torbox torrents create --magnet 'magnet:?xt=urn:btih:...'
+
+# Create a torrent from a .torrent file
+torbox torrents create --file ./ubuntu.torrent --name "Ubuntu ISO"
+
+# Asynchronous create (errors delivered via notifications)
+torbox torrents async-create --magnet 'magnet:?xt=urn:btih:...'
+
+# Control torrents (delete, pause, resume)
+torbox torrents control 42 --operation delete --yes
+torbox torrents control --operation pause --all
+
+# Edit torrent metadata
+torbox torrents edit 42 --name "New Name" --tags "linux,iso"
+
+# Check if hashes are cached on TorBox
+torbox torrents checkcached hashes a1b2c3d4e5f6a7b8c9d0
+
+# Check multiple hashes via POST (unlimited)
+torbox torrents checkcached hashes hash1 hash2 hash3 --batch
+
+# Export a .torrent file
+torbox torrents export 42 --output movie.torrent
+
+# Request a download link for a specific file
+torbox torrents requestdl 42 1
+
+# Batch-create torrents from a file (dry-run first)
+cat magnets.txt | xargs -I {} torbox torrents create {} --dry-run
+
+# Check API status (public endpoint, no auth needed)
+torbox general status
+torbox general status --json
+
+# View service statistics
+torbox general stats --json
+
+# Browse recent changelogs
+torbox general changelogs
+torbox general changelogs --format rss
+
+# Run a speed test
+torbox general speedtest --test-length short --region us
+
+# User account information
+torbox user me
+torbox user me --json
+
+# View and manage search engines
+torbox user searchengines
+
+# User settings
+torbox user settings --json
+torbox user settings --body '{"theme": "dark"}'
+
+# View transactions
+torbox user transactions --limit 5
+
+# Download transaction invoice PDF
+torbox user transaction-pdf 123 --output invoice.pdf
+
+# Device authentication flow (no API key needed)
+torbox user auth-device-start
+
+# Manage RSS feeds
+torbox rss list
+torbox rss create https://example.com/feed.xml --name "My Feed" --type torrent
+torbox rss edit 2 --name "Updated Feed"
+torbox rss items 2
+torbox rss delete 2 --yes
+
+# Manage usenet downloads
+torbox usenet list --limit 10
+torbox usenet create https://example.com/file.nzb --name "My NZB"
+torbox usenet control 42 --operation delete --yes
+
+# Manage web downloads
+torbox webdl list
+torbox webdl create https://example.com/file.zip
+torbox webdl hosters --json          # List supported hosters (no auth needed)
+
+# Manage queued downloads
+torbox queued list
+torbox queued add 42 --type torrent
+
+# Manage notifications
+torbox notifications list
+torbox notifications test
+torbox notifications clear --yes
+
+# Stream management
+torbox stream create 42 --file-id 1 --type torrent
+torbox stream data <token>
+torbox stream delete <token> --type torrent
+
+# Cloud upload jobs (integrations)
+torbox integrations jobs <job-id>
+torbox integrations cancel <job-id> --yes
 ```
 
-### `library` — Search Your TorBox Library
-
-Search files already in your TorBox library by filename or partial name.
+### Cron-Safe Automation
 
 ```bash
-# Search library for a file
-torbox search library "batman"
+# Auto-retry with backoff so rate limits don't kill nightly jobs
+torbox torrents list --auto-retry --json --quiet > /var/log/torbox-backup.json
 
-# JSON output
-torbox search library "batman" --json
+# Silent JSON output for scheduled tasks
+torbox torrents list --json --quiet
 ```
 
-### `popular` — Browse Trending Titles
-
-Browse popular movies or series from Cinemeta without a search query. After showing results, pick a number to auto-search streams for that title.
+### Debug a Failing Command
 
 ```bash
-# Browse popular movies (interactive)
-torbox search popular
+# Verbose mode shows request timing and headers
+torbox general status --verbose
 
-# Popular series, limit to 5 results
-torbox search popular --type series --limit 5
-
-# JSON output (no interactive prompt)
-torbox search popular --json
+# Inspect why auth isn't resolving where you expect
+torbox config doctor
 ```
 
-### `info` — Full Metadata Lookup
+### Profiles (Multiple Accounts)
 
-Show detailed metadata for any IMDB ID: description, rating, runtime, genres, cast, director, and poster.
+Create an INI-style config at `~/.config/torbox-cli/config.env`:
+
+```ini
+[default]
+TORBOX_API_KEY = tb-your-default-key
+
+[work]
+TORBOX_API_KEY = tb-your-work-key
+TORBOX_TIMEOUT = 60
+```
+
+Select a profile with `--profile`:
 
 ```bash
-# Show metadata for a movie
-torbox search info tt0133093
-
-# Metadata for a series
-torbox search info tt0944947 --type series
-
-# JSON output for further processing
-torbox search info tt0133093 --json
+torbox --profile work torrents list
+torbox --profile work --field data torrents list --json
 ```
 
-### Stream Table Columns
+Profiles support all config keys: `TORBOX_API_KEY`, `TORBOX_BASE_URL`, `TORBOX_TIMEOUT`, `TORBOX_RETRIES`.
 
-Human-mode stream output includes rich metadata extracted from torrent filenames via `guessit`:
-
-- **Filename** — Torrent filename (truncated if long)
-- **Quality** — Quality tag from stream description
-- **Size** — File size in human-readable format
-- **Seeders** — Number of seeders
-- **Source** — Source type (Blu-ray, Web, etc.)
-- **Group** — Release group (e.g., YIFY, SPARKS, NTb)
-- **Year** — Release year extracted from filename
-- **Cached** — Checkmark if cached on TorBox
-
-### Default Shortcut
-
-`torbox search <query>` without a subcommand defaults to `streams`:
-
-```bash
-torbox search "the matrix"          # same as: torbox search streams "the matrix"
-torbox search tt0133093 --cached     # same as: torbox search streams tt0133093 --cached
-```
-
-### Important Notes
-
-- **Unofficial endpoints:** The Stremio addon endpoints are not part of the official TorBox REST API and may change.
-- **Cinemeta dependency:** Title resolution requires `v3-cinemeta.strem.io` to be available. If it's down, use an IMDB ID directly.
-- **Cinemeta results may vary:** Metadata availability, accuracy, and completeness depend on a third-party service outside our control.
-- **No results:** If no streams are found, try broadening filters or searching without them.
-- **Series without season/episode:** Some streams may work without specifying season/episode, but most require them.
-
-> See [DISCLAIMER.md](DISCLAIMER.md) for full legal and third-party service disclaimers.
-
-## TV Show Cache Checking (`torrents checkcached show`)
-
-Check cache status for **all episodes of a TV show** in a single command. This discovers episodes via Cinemeta, then queries the TorBox Stremio addon for each episode in parallel, and aggregates the results into a single table.
-
-```bash
-# Check all episodes of Season 1
- torbox torrents checkcached show tt0944947 --season 1
-
-# Only check specific episodes
- torbox torrents checkcached show tt0944947 --season 1 --episodes 1,2,3
-
-# Filter to only cached episodes
- torbox torrents checkcached show tt0944947 --season 1 --cached
-
-# JSON output for scripting
- torbox torrents checkcached show tt0944947 --season 1 --json
-
-# Sort by best quality
- torbox torrents checkcached show tt0944947 --season 1 --sort quality
-```
-
-### Notes
-
-- Uses **parallel requests** (`--max-workers` controls concurrency, default 20).
-- Supports all standard stream filters: `--resolution`, `--cached/--not-cached`, `--min-seeders`, `--quality`, `--source`, `--min-size`, `--max-size`.
-- Backward compatible: `torbox torrents checkcached hash1 hash2` still works (defaults to `hashes` subcommand).
-
-### `checkcached show` Flags
-
-| Flag | Default | Description | Example |
-|------|---------|-------------|---------|
-| `-s, --season` | — | Season number | `--season 1` |
-| `-e, --episodes` | — | Comma-separated episode numbers | `--episodes 1,2,3` |
-| `--resolution` | — | Filter by resolution | `--resolution 1080p` |
-| `--cached` / `--not-cached` | — | Filter by cache status | `--cached` |
-| `--min-seeders` | — | Minimum seeders | `--min-seeders 50` |
-| `--quality` | — | Filter by quality tag | `--quality BLURAY` |
-| `--source` | — | Filter by source | `--source Web` |
-| `--min-size` | — | Minimum file size | `--min-size 1GB` |
-| `--max-size` | — | Maximum file size | `--max-size 10GB` |
-| `--sort` | `episode` | Sort: `episode`, `seeders`, `quality`, `cached` | `--sort quality` |
-| `--limit` | `20` | Max streams per episode | `--limit 50` |
-| `--max-workers` | `20` | Parallel Stremio request workers | `--max-workers 10` |
-| `-j, --json` | — | JSON output | `--json` |
-| `-f, --field` | — | Dot-path extract | `--field episodes.0.title` |
-
-### `--genre` Filter — Valid Genres
-
-The `--genre` flag filters Cinemeta search results client-side. Genres come from IMDB/OMDb metadata. Common genres include:
-
-- `Action`, `Adventure`, `Animation`
-- `Biography`, `Comedy`, `Crime`
-- `Documentary`, `Drama`
-- `Family`, `Fantasy`
-- `History`, `Horror`
-- `Music`, `Musical`, `Mystery`
-- `Romance`
-- `Sci-Fi`, `Sport`
-- `Thriller`
-- `War`, `Western`
-
-Use exact case-insensitive matching: `--genre "Sci-Fi"`, `--genre action`, and `--genre ACTION` all work.
-
-### `--details` Flag
-
-`--details` is a boolean flag (no value needed). When present, it fetches full Cinemeta metadata for the resolved IMDB ID and displays a rich panel with:
-- Title and year
-- IMDB rating
-- Runtime
-- Genres
-- Plot description (truncated to ~200 chars)
-
-This appears **before** the stream results table. It has no effect with `--json` or `--field`.
-
-## Live Monitor (`monitor`)
+### Live Monitor (`monitor`)
 
 Full-screen htop-style TUI dashboard showing live download activity across all TorBox categories. Polls all 4 list endpoints in parallel and refreshes every second.
 
@@ -347,7 +353,7 @@ torbox monitor --filter linux
 torbox monitor --compact
 ```
 
-### What You See
+#### What You See
 
 ```
  TorBox Monitor   Active: 7   DL: 45.2 MB/s   Sort: status   Ctrl-C quit
@@ -367,7 +373,7 @@ torbox monitor --compact
   5   Music Album       WA         -         -          -        -
 ```
 
-### Flags
+#### Monitor Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -380,37 +386,24 @@ torbox monitor --compact
 
 Press **Ctrl-C** to exit. The terminal is restored cleanly.
 
-## Profiles (Multiple Accounts)
-
-Create an INI-style config at `~/.config/torbox-cli/config.env`:
-
-```ini
-[default]
-TORBOX_API_KEY = tb-your-default-key
-
-[work]
-TORBOX_API_KEY = tb-your-work-key
-TORBOX_TIMEOUT = 60
-```
-
-Select a profile with `torbox --profile work torrents list`.
-
-## Architecture
-
-```
-Command (typer) → Helpers → Client (httpx) → API
-                              ↓
-                      Formatters (rich / JSON)
-```
-
-The CLI follows a layered design: Typer commands validate input, the client handles auth/retries/error mapping, and formatters produce either rich tables for humans or normalized JSON envelopes for machines.
+---
 
 ## Troubleshooting
 
-Use `torbox config doctor` to inspect which auth source is active and what the effective values are.
+### Config Doctor
+
+Run `torbox config doctor` to inspect which auth source is active and what the effective values are:
+
+```bash
+torbox config doctor          # human-readable output
+torbox config doctor --json   # machine-readable output
+```
+
+### Exit Codes
 
 | Exit Code | Meaning |
 |-----------|---------|
+| 0 | Success |
 | 1 | General / validation error |
 | 2 | Authentication failure |
 | 3 | API / server error |
@@ -419,23 +412,55 @@ Use `torbox config doctor` to inspect which auth source is active and what the e
 | 6 | Not found |
 | 130 | Interrupted (Ctrl-C) |
 
+---
+
 ## Contributing
 
-1. `uv sync` — install dependencies.
-2. `pre-commit install` — enable git hooks.
+1. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+2. Enable git hooks:
+   ```bash
+   pre-commit install
+   ```
+
 3. Add the Pydantic model to `torbox/models.py`.
+
 4. Add the CLI command to `torbox/commands/*.py` with real-world `help=` text.
+
 5. Add tests in `tests/test_<group>.py`.
-6. Run `uv run ruff check torbox/ tests/` and `uv run mypy --strict torbox/`.
-7. Run `uv run pytest tests/` (coverage threshold: 65%).
+
+6. Run the linter and type checker:
+   ```bash
+   uv run ruff check torbox/ tests/
+   uv run mypy --strict torbox/
+   ```
+
+7. Run the test suite (coverage threshold: 65%):
+   ```bash
+   uv run pytest tests/
+   ```
+
+---
 
 ## See Also
 
 - [DISCLAIMER.md](DISCLAIMER.md) — legal disclaimer and third-party service notices
 - [CHANGELOG.md](CHANGELOG.md) — version history and release notes
+- [AGENTS.md](AGENTS.md) — architecture notes and integration constraints
+- [TODO.md](TODO.md) — known issues and planned improvements
 - [TorBox API Documentation](https://torbox.app/)
 - [TorBox Terms of Service](https://torbox.app/terms)
-- Install: `pip install git+https://github.com/SwordfishTrumpet/torbox-cli.git`
+
+### Install from Source
+
+```bash
+pip install git+https://github.com/SwordfishTrumpet/torbox-cli.git
+```
+
+---
 
 ## License
 
