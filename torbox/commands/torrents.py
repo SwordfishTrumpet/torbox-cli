@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import click
 import typer
 from typer import Context
+from typer._click.core import Command as _ClickCommand
+from typer._click.core import Context as _ClickContext
 from typer.core import TyperGroup
 
 from torbox.commands._helpers import (
@@ -35,8 +36,8 @@ class CheckcachedGroup(TyperGroup):
     """Typer group that defaults to the 'hashes' subcommand."""
 
     def resolve_command(
-        self, ctx: click.Context, args: list[str]
-    ) -> tuple[str | None, click.Command | None, list[str]]:
+        self, ctx: _ClickContext, args: list[str]
+    ) -> tuple[str | None, _ClickCommand | None, list[str]]:
         try:
             return super().resolve_command(ctx, args)
         except Exception:
@@ -88,7 +89,11 @@ def list_torrents(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Torrents")
+            cols = [
+                "id", "name", "size", "status",
+                "progress", "download_speed", "cached",
+            ]
+            print_table(data["data"], "Torrents", columns=cols)
     elif not _is_quiet(ctx):
         print(data)
 
@@ -152,7 +157,9 @@ def files(
     file_list = item.get("files")
     if isinstance(file_list, list) and file_list:
         if not _is_quiet(ctx):
-            print_table(file_list, f"Torrent {id} Files")
+            print_table(file_list, f"Torrent {id} Files", columns=[
+                    "id", "short_name", "size", "mimetype", "infected",
+                ])
     else:
         if not _is_quiet(ctx):
             print_panel("No files listed for this torrent.", f"Torrent {id}")

@@ -48,7 +48,10 @@ def list(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Web Downloads")
+            print_table(data["data"], "Web Downloads", columns=[
+                    "id", "name", "size", "download_state",
+                    "progress", "download_speed", "cached",
+                ])
     elif not _is_quiet(ctx):
         print("WebDL list: OK")
 
