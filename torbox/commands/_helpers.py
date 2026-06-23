@@ -16,16 +16,30 @@ from torbox.formatters import (
     print_json,
 )
 
+_CLIENT_ATTR = "_torbox_client"
+
 
 def _get_client(ctx: Context) -> TorBoxClient:
-    """Create a TorBoxClient from CLI context options."""
-    return TorBoxClient(
+    """Create a TorBoxClient from CLI context options.
+
+    The created client is cached on ``ctx.obj`` so that duration tracking
+    can be read by ``print_json_envelope`` without requiring explicit
+    plumbing through every command.
+    """
+    if ctx.obj and ctx.obj.get(_CLIENT_ATTR):
+        client: object = ctx.obj[_CLIENT_ATTR]
+        assert isinstance(client, TorBoxClient)
+        return client
+    client = TorBoxClient(
         api_key=ctx.obj.get("api_key") if ctx.obj else None,
         config_path=ctx.obj.get("config") if ctx.obj else None,
         profile=ctx.obj.get("profile") if ctx.obj else None,
         verbose=ctx.obj.get("verbose", False) if ctx.obj else False,
         auto_retry=ctx.obj.get("auto_retry", False) if ctx.obj else False,
     )
+    if ctx.obj is not None:
+        ctx.obj[_CLIENT_ATTR] = client
+    return client
 
 
 def _should_json(ctx: Context, local_json: bool = False) -> bool:
@@ -179,6 +193,10 @@ def print_json_envelope(
 
     Respects --field and --compact. Raises typer.Exit(code=1) if
     --field path is missing.
+
+    If ``duration_ms`` is 0.0 (the default), the method will attempt to
+    read the actual request duration from the cached client on
+    ``ctx.obj`` (set by ``_get_client``).
     """
     use_json = _should_json(ctx, local_json)
     fld = field if field is not None else _get_field(ctx)
@@ -186,6 +204,10 @@ def print_json_envelope(
     verbose = _is_verbose(ctx)
     if not use_json and not fld:
         return
+    if not duration_ms and ctx.obj is not None:
+        cached_client: TorBoxClient | None = ctx.obj.get(_CLIENT_ATTR)
+        if cached_client is not None:
+            duration_ms = cached_client.last_request_duration_ms
     envelope = format_envelope(data, command, duration_ms=duration_ms)
     ok = print_json(envelope, field=fld, compact=compact, verbose=verbose)
     if not ok:

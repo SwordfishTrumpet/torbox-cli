@@ -50,11 +50,17 @@ class TorBoxClient:
         self.verbose = verbose
         self.auto_retry = auto_retry
         self._request_log: dict[str, list[float]] = {}
+        self._last_request_duration_ms: float = 0.0
         self.client = httpx.Client(
             base_url=self.base_url,
             timeout=self.timeout,
             limits=httpx.Limits(max_connections=20),
         )
+
+    @property
+    def last_request_duration_ms(self) -> float:
+        """Return the duration (ms) of the most recent request."""
+        return self._last_request_duration_ms
 
     @overload
     def _execute(
@@ -172,6 +178,7 @@ class TorBoxClient:
             break  # success or non-429 non-timeout status
 
         duration = (time.perf_counter() - start) * 1000
+        self._last_request_duration_ms = duration
         if self.verbose:
             if resp is not None:
                 print(
