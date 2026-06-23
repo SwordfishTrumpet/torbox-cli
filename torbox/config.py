@@ -9,7 +9,7 @@ import warnings
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 DEFAULT_BASE_URL = "https://api.torbox.app/v1/api"
 DEFAULT_TIMEOUT = 30
@@ -58,12 +58,17 @@ def _load_ini_profile(path: Path, profile: str) -> dict[str, str]:
     """Load a specific profile section from an INI-style config file.
 
     Returns a dict of key-value pairs for the profile, or an empty dict
-    if the file or profile does not exist.
+    if the file or profile does not exist, or if the file is not a valid
+    INI file (e.g. a plain .env key=value file without section headers).
     """
     if not path.exists():
         return {}
     parser = configparser.ConfigParser()
-    parser.read(path, encoding="utf-8")
+    try:
+        parser.read(path, encoding="utf-8")
+    except configparser.MissingSectionHeaderError:
+        # File is not an INI file (e.g. plain .env key=value), skip gracefully
+        return {}
     if parser.has_section(profile):
         return dict(parser.items(profile))
     return {}
@@ -104,25 +109,35 @@ def load_config(
     if env_key:
         config["api_key"] = env_key
 
-    # Load .env files (lower priority, do not override env var)
+    # Load .env files (lower priority, do not override env var).
+    # Use dotenv_values() instead of load_dotenv() to avoid polluting
+    # os.environ, which breaks tests that rely on clean environments.
     dotenv_paths = [
         Path.cwd() / ".env",
         Path(config_path) if config_path else None,
         Path.home() / ".config" / "torbox-cli" / "config.env",
         Path.home() / ".torbox-cli.env",
     ]
+    dotenv_merged: dict[str, str | None] = {}
     for dotenv_path in dotenv_paths:
         if dotenv_path and dotenv_path.exists():
             _check_file_permissions(dotenv_path)
-            load_dotenv(dotenv_path=dotenv_path, override=False)
+            values = dotenv_values(dotenv_path)
+            # Merge with lower priority — don't override already-seen keys
+            for k, v in values.items():
+                if k not in dotenv_merged:
+                    dotenv_merged[k] = v
 
+    # Apply dotenv values for any key not already set by env var
     if not config["api_key"]:
-        config["api_key"] = os.getenv("TORBOX_API_KEY")
+        config["api_key"] = dotenv_merged.get("TORBOX_API_KEY")
 
-    # Other settings from env after loading dots
-    if base := os.getenv("TORBOX_BASE_URL"):
+    # Other settings: env var wins, then dotenv, then default
+    if base := (os.getenv("TORBOX_BASE_URL") or dotenv_merged.get("TORBOX_BASE_URL")):
         config["base_url"] = base
-    if timeout_str := os.getenv("TORBOX_TIMEOUT"):
+    if timeout_str := (
+        os.getenv("TORBOX_TIMEOUT") or dotenv_merged.get("TORBOX_TIMEOUT")
+    ):
         try:
             config["timeout"] = _validate_timeout(int(timeout_str))
         except ConfigValidationError:
@@ -131,7 +146,9 @@ def load_config(
             raise ConfigValidationError(
                 f"TORBOX_TIMEOUT must be an integer, got {timeout_str!r}"
             ) from exc
-    if retries_str := os.getenv("TORBOX_RETRIES"):
+    if retries_str := (
+        os.getenv("TORBOX_RETRIES") or dotenv_merged.get("TORBOX_RETRIES")
+    ):
         try:
             config["retries"] = _validate_retries(int(retries_str))
         except ConfigValidationError:
