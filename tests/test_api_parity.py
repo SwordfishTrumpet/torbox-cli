@@ -8,7 +8,7 @@ from typing import Any
 from typer.testing import CliRunner
 
 from torbox.cli import app
-from torbox.config import DEFAULT_BASE_URL
+from torbox.config import DEFAULT_BASE_URL, DEFAULT_SERVER_URL
 
 runner = CliRunner()
 
@@ -119,6 +119,38 @@ class TestTorrentsEdit:
         body = json.loads(req.content)
         assert body["tags"] == ["linux", "iso", "ubuntu"]
 
+    def test_edit_with_airlocked(self, httpx_mock: Any) -> None:
+        """--airlocked should be sent in payload when set."""
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/torrents/edittorrent",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["torrents", "edit", "42", "--name", "Test", "--airlocked"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["airlocked"] is True
+
+    def test_edit_without_airlocked_not_in_payload(self, httpx_mock: Any) -> None:
+        """Without --airlocked, the key should not appear in payload."""
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/torrents/edittorrent",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["torrents", "edit", "42", "--name", "Test"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert "airlocked" not in body
+
     def test_edit_dry_run(self) -> None:
         result = runner.invoke(
             app,
@@ -178,6 +210,36 @@ class TestUsenetEdit:
         body = json.loads(req.content)
         assert body["usenet_download_id"] == 5
         assert body["name"] == "My Download"
+
+    def test_edit_with_airlocked(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/editusenetdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["usenet", "edit", "5", "--name", "Test", "--airlocked"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["airlocked"] is True
+
+    def test_edit_without_airlocked_not_in_payload(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/editusenetdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["usenet", "edit", "5", "--name", "Test"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert "airlocked" not in body
 
     def test_edit_dry_run(self) -> None:
         result = runner.invoke(
@@ -266,6 +328,73 @@ class TestWebdlCheckcached:
         req = httpx_mock.get_requests()[0]
         assert "format=list" in str(req.url)
         assert "list_files=1" in str(req.url)
+
+
+class TestWebdlEdit:
+    def test_edit_basic(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/editwebdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["webdl", "edit", "5", "--name", "My Download"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["webdl_id"] == 5
+        assert body["name"] == "My Download"
+
+    def test_edit_with_airlocked(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/editwebdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["webdl", "edit", "5", "--name", "Test", "--airlocked"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["airlocked"] is True
+
+    def test_edit_without_airlocked_not_in_payload(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/editwebdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["webdl", "edit", "5", "--name", "Test"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert "airlocked" not in body
+
+    def test_edit_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["webdl", "edit", "5", "--name", "Test", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_edit_airlocked_dry_run(self) -> None:
+        """airlocked should appear in dry-run payload."""
+        result = runner.invoke(
+            app,
+            ["webdl", "edit", "5", "--name", "Test", "--airlocked", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "airlocked" in result.output
 
 
 class TestNotifications:
@@ -371,6 +500,339 @@ class TestIntegrations:
         assert "DELETE /integration/job/job_xyz" in result.output
 
 
+class TestNntp:
+    def test_credentials(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/nntp/credentials",
+            json={"success": True, "data": {"username": "user", "password": "pass"}},
+        )
+        result = runner.invoke(
+            app,
+            ["nntp", "credentials", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+        assert out["data"]["data"]["username"] == "user"
+
+    def test_reset_password(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/nntp/resetpassword",
+            json={"success": True, "data": {"password": "newpass"}},
+        )
+        result = runner.invoke(
+            app,
+            ["nntp", "reset-password", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_nntp_help(self) -> None:
+        result = runner.invoke(app, ["nntp", "--help"])
+        assert result.exit_code == 0
+        assert "credentials" in result.output
+        assert "reset-password" in result.output
+
+    def test_top_level_help_has_nntp(self) -> None:
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        assert "nntp" in result.output
+
+
+class TestIntegrationsInfo:
+    def test_info(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/job/job_123",
+            json={
+                "success": True,
+                "data": {"job_id": "job_123", "status": "completed"},
+            },
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "info", "job_123", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+        assert out["data"]["data"]["job_id"] == "job_123"
+
+    def test_info_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["integrations", "info", "job_123", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_integrations_help_includes_info(self) -> None:
+        result = runner.invoke(app, ["integrations", "--help"])
+        assert result.exit_code == 0
+        assert "info" in result.output
+
+
+class TestNotificationsClearOne:
+    def test_clear_one(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/notifications/clear/42",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["notifications", "clear-one", "42", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_clear_one_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["notifications", "clear-one", "42", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_notifications_help_includes_clear_one(self) -> None:
+        result = runner.invoke(app, ["notifications", "--help"])
+        assert result.exit_code == 0
+        assert "clear-one" in result.output
+
+
+class TestTorrentsTorrentInfo:
+    def test_torrentinfo_get(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/torrents/torrentinfo?hash=abc123",
+            json={"success": True, "data": {"name": "Test Torrent", "size": 1000}},
+        )
+        result = runner.invoke(
+            app,
+            ["torrents", "torrentinfo", "abc123", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_torrentinfo_post_magnet(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/torrents/torrentinfo",
+            json={"success": True, "data": {"name": "Magnet Torrent"}},
+        )
+        result = runner.invoke(
+            app,
+            ["torrents", "torrentinfo", "--magnet", "magnet:?xt=urn:btih:abc"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+
+    def test_torrentinfo_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["torrents", "torrentinfo", "abc123", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_torrents_help_includes_torrentinfo(self) -> None:
+        result = runner.invoke(app, ["torrents", "--help"])
+        assert result.exit_code == 0
+        assert "torrentinfo" in result.output
+
+
+class TestIntegrationsUpload:
+    def test_upload_googledrive(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/googledrive",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "googledrive", "42", "--token", "gtoken"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+        assert body["google_token"] == "gtoken"
+
+    def test_upload_pixeldrain(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/pixeldrain",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "pixeldrain", "42"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+
+    def test_upload_onedrive(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/onedrive",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "onedrive", "42", "--token", "otoken"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+        assert body["onedrive_token"] == "otoken"
+
+    def test_upload_gofile(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/gofile",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "gofile", "42", "--gofile-token", "gftoken"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+        assert body["gofile_token"] == "gftoken"
+
+    def test_upload_1fichier(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/1fichier",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "1fichier", "42"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+
+    def test_upload_invalid_provider(self) -> None:
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "invalid", "42"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code != 0
+
+    def test_upload_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "googledrive", "42", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_list_jobs(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/jobs",
+            json={"success": True, "data": [{"job_id": "j1", "status": "running"}]},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "list-jobs", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_integrations_help_includes_upload(self) -> None:
+        result = runner.invoke(app, ["integrations", "--help"])
+        assert result.exit_code == 0
+        assert "upload" in result.output
+        assert "list-jobs" in result.output
+
+
+class TestUserRefreshToken:
+    def test_refresh_token(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/refreshtoken",
+            json={"success": True, "data": {"token": "new-token"}},
+        )
+        result = runner.invoke(
+            app,
+            ["user", "refresh-token", "session_abc"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["session_token"] == "session_abc"
+
+    def test_refresh_token_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["user", "refresh-token", "session_abc", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_user_help_includes_refresh_token(self) -> None:
+        result = runner.invoke(app, ["user", "--help"])
+        assert result.exit_code == 0
+        assert "refresh-token" in result.output
+
+
+class TestUserAddReferral:
+    def test_add_referral(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/addreferral",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["user", "add-referral", "REFERRAL123"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["referral_code"] == "REFERRAL123"
+
+    def test_add_referral_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["user", "add-referral", "REFERRAL123", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+
+    def test_user_help_includes_add_referral(self) -> None:
+        result = runner.invoke(app, ["user", "--help"])
+        assert result.exit_code == 0
+        assert "add-referral" in result.output
+
+
 class TestSpeedtestParams:
     def test_speedtest_with_params(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(json={"success": True, "data": {"speed": 100}})
@@ -406,3 +868,23 @@ class TestSpeedtestParams:
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
         assert "test_length" not in str(req.url)
+
+
+class TestGeneralPing:
+    def test_ping(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=DEFAULT_SERVER_URL,
+            json={"success": True, "data": {"status": "up"}},
+        )
+        result = runner.invoke(
+            app,
+            ["general", "ping", "--json"],
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_general_help_includes_ping(self) -> None:
+        result = runner.invoke(app, ["general", "--help"])
+        assert result.exit_code == 0
+        assert "ping" in result.output

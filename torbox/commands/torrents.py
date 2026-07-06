@@ -528,6 +528,9 @@ def edit(
         "--alternative-hashes",
         help="Comma-separated alternative hashes",
     ),
+    airlocked: bool | None = typer.Option(
+        None, "--airlocked", help="Keep file in permanent storage (Airlock)",
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
         False,
@@ -548,6 +551,8 @@ def edit(
         payload["alternative_hashes"] = [
             h.strip() for h in alternative_hashes.split(",") if h.strip()
         ]
+    if airlocked is not None:
+        payload["airlocked"] = airlocked
     if dry_run_guard(
         ctx,
         "PUT /torrents/edittorrent",
@@ -562,6 +567,59 @@ def edit(
         return
     if not _is_quiet(ctx):
         print_panel(f"Torrent {id} edited successfully.", "Edited")
+
+
+@app.command(
+    help=(
+        "GET|POST /torrents/torrentinfo — Look up torrent metadata\n\n"
+        "Example: torbox torrents torrentinfo a1b2c3d4\n"
+        "         torbox torrents torrentinfo --magnet 'magnet:?xt=urn:btih:...'"
+    )
+)
+@handle_errors
+def torrentinfo(
+    ctx: Context,
+    hash: str | None = typer.Argument(
+        None, help="Infohash to look up"
+    ),
+    magnet: str | None = typer.Option(
+        None, "--magnet", help="Magnet link (uses POST)"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    if magnet:
+        payload = {"magnet": magnet}
+        if dry_run_guard(
+            ctx, "POST /torrents/torrentinfo", payload=payload, dry_run=dry_run
+        ):
+            return
+        data: dict[str, Any] = client.post("/torrents/torrentinfo", json=payload)
+    else:
+        if not hash:
+            raise typer.BadParameter("Either provide a hash or use --magnet")
+        if dry_run_guard(
+            ctx, f"GET /torrents/torrentinfo?hash={hash}", dry_run=dry_run
+        ):
+            return
+        data = client.get("/torrents/torrentinfo", params={"hash": hash})
+    print_json_envelope(ctx, data, "torrents torrentinfo", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        from torbox.formatters import print_dict_panel
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, "Torrent Info")
+        else:
+            print_panel("Torrent info retrieved.", "Torrent Info")
 
 
 app.add_typer(checkcached_app, name="checkcached")

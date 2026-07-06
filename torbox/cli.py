@@ -16,6 +16,7 @@ from torbox.commands import (
     general,
     integrations,
     monitor,
+    nntp,
     notifications,
     queued,
     rss,
@@ -175,6 +176,11 @@ app.add_typer(
     integrations.app,
     name="integrations",
     help="Integrations management — cloud upload jobs (jobs, cancel)",
+)
+app.add_typer(
+    nntp.app,
+    name="nntp",
+    help="NNTP News Server credentials — credentials, reset-password",
 )
 app.add_typer(
     monitor.app,

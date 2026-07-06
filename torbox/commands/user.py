@@ -13,6 +13,7 @@ from torbox.commands._helpers import (
     _is_quiet,
     _set_auto_retry,
     _should_json,
+    dry_run_guard,
     handle_errors,
     print_json_envelope,
 )
@@ -302,3 +303,71 @@ def auth_device_complete(
         return
     if not _is_quiet(ctx):
         print_panel("Device auth flow completed.", "Device Auth")
+
+
+@app.command(
+    help=(
+        "POST /user/refreshtoken — Rotate API token\n\n"
+        "Requires session_token from the website's localStorage.\n"
+        "Example: torbox user refresh-token session_abc123"
+    )
+)
+@handle_errors
+def refresh_token(
+    ctx: Context,
+    session_token: str = typer.Argument(
+        ..., help="Session token from website localStorage"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request payload without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    payload: dict[str, str] = {"session_token": session_token}
+    if dry_run_guard(ctx, "POST /user/refreshtoken", payload=payload, dry_run=dry_run):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post("/user/refreshtoken", json=payload)
+    print_json_envelope(ctx, data, "user refresh-token", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel("API token refreshed successfully.", "Token Refreshed")
+
+
+@app.command(
+    help=(
+        "POST /user/addreferral — Add a referral code\n\n"
+        "Example: torbox user add-referral REFERRAL123"
+    )
+)
+@handle_errors
+def add_referral(
+    ctx: Context,
+    referral_code: str = typer.Argument(..., help="Referral code to add"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request payload without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    payload: dict[str, str] = {"referral_code": referral_code}
+    if dry_run_guard(ctx, "POST /user/addreferral", payload=payload, dry_run=dry_run):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post("/user/addreferral", json=payload)
+    print_json_envelope(ctx, data, "user add-referral", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(
+            f"Referral code {referral_code} added successfully.",
+            "Referral Added",
+        )

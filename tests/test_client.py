@@ -58,3 +58,10 @@ def test_no_idempotency_key_on_get(httpx_mock: Any) -> None:
     requests = httpx_mock.get_requests()
     assert len(requests) == 1
     assert "x-idempotency-key" not in requests[0].headers
+
+
+def test_createtorrent_rate_limit_v9() -> None:
+    """v9.0.0 bumped createtorrent rate limit to 300/minute for cached items."""
+    limits = TorBoxClient._RATE_LIMITS
+    assert ("/torrents/createtorrent", "POST") in limits
+    assert limits[("/torrents/createtorrent", "POST")] == (300, 60)

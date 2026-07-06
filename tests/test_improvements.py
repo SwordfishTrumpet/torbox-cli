@@ -98,9 +98,13 @@ def test_missing_api_key_warning(monkeypatch: Any, tmp_path: Any) -> None:
 # --- Auto-retry Flag Test ---
 
 
-def test_auto_retry_flag_exists() -> None:
-    result = runner.invoke(app, ["--auto-retry", "torrents", "list"])
-    # Should fail because no API key, but flag should be accepted
+def test_auto_retry_flag_exists(monkeypatch: Any, tmp_path: Any) -> None:
+    monkeypatch.delenv("TORBOX_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env supplying a real key
+    with pytest.warns(UserWarning, match="No API key configured"):
+        result = runner.invoke(app, ["--auto-retry", "torrents", "list"])
+    # No API key configured, so it fails with auth error before any request,
+    # but the --auto-retry flag must be accepted (not an unknown option).
     assert "No such option" not in result.output
 
 

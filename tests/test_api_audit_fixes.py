@@ -15,6 +15,7 @@ from typer.testing import CliRunner
 from torbox.cli import app
 from torbox.client import TorBoxClient
 from torbox.config import DEFAULT_BASE_URL
+from torbox.exceptions import AuthenticationError
 from torbox.models import (
     DeviceCodeAuth,
     Hoster,
@@ -456,8 +457,12 @@ def test_client_post_bytes(httpx_mock: Any) -> None:
     client.close()
 
 
-def test_client_get_bytes_no_auth() -> None:
-    client = TorBoxClient()
-    with pytest.raises(Exception):
-        client.get_bytes("/test/bytes")
+def test_client_get_bytes_no_auth(monkeypatch: Any, tmp_path: Any) -> None:
+    monkeypatch.delenv("TORBOX_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env supplying a real key
+    client = TorBoxClient(api_key=None)
+    assert client.api_key is None
+    with pytest.warns(UserWarning, match="No API key configured"):
+        with pytest.raises(AuthenticationError):
+            client.get_bytes("/test/bytes")
     client.close()

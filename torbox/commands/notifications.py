@@ -25,6 +25,41 @@ app = typer.Typer(help="Notifications management")
 
 @app.command(
     help=(
+        "POST /notifications/clear/{id} — Clear a single notification by ID\n\n"
+        "Example: torbox notifications clear-one 42"
+    )
+)
+@handle_errors
+def clear_one(
+    ctx: Context,
+    id: int,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    if dry_run_guard(
+        ctx,
+        f"POST /notifications/clear/{id}",
+        payload={"notification_id": id},
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post(f"/notifications/clear/{id}")
+    print_json_envelope(ctx, data, "notifications clear-one", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"Notification {id} cleared successfully.", "Cleared")
+
+
+@app.command(
+    help=(
         "GET /notifications/mynotifications — List all notifications. "
         "Example: torbox notifications list"
     )

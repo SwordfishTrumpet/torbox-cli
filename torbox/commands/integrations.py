@@ -24,6 +24,45 @@ app = typer.Typer(help="Integrations management — cloud upload jobs")
 
 @app.command(
     help=(
+        "GET /integration/job/{job_id} — Get a single integration job by ID\n\n"
+        "Example: torbox integrations info job_abc123"
+    )
+)
+@handle_errors
+def info(
+    ctx: Context,
+    job_id: str,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    if dry_run_guard(
+        ctx,
+        f"GET /integration/job/{job_id}",
+        payload={"job_id": job_id},
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get(f"/integration/job/{job_id}")
+    print_json_envelope(ctx, data, "integrations info", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, f"Integration Job {job_id}")
+        else:
+            print_panel(f"Integration job {job_id} retrieved.", "Job Info")
+
+
+@app.command(
+    help=(
         "GET /integration/jobs/{hash} — Get integration jobs for a download hash\n\n"
         "Example: torbox integrations jobs abc123def456"
     )
@@ -92,3 +131,102 @@ def cancel(
         return
     if not _is_quiet(ctx):
         print_panel("Integration job cancelled.", f"Job {job_id}")
+
+
+_VALID_PROVIDERS = {
+    "googledrive": "/integration/googledrive",
+    "pixeldrain": "/integration/pixeldrain",
+    "onedrive": "/integration/onedrive",
+    "gofile": "/integration/gofile",
+    "1fichier": "/integration/1fichier",
+}
+
+
+@app.command(
+    help=(
+        "POST /integration/{provider} — Queue cloud upload for a file\n\n"
+        "Supported providers: googledrive, pixeldrain, onedrive, gofile, 1fichier\n\n"
+        "Example: torbox integrations upload googledrive 42 --token gtoken\n"
+        "         torbox integrations upload pixeldrain 42"
+    )
+)
+@handle_errors
+def upload(
+    ctx: Context,
+    provider: str = typer.Argument(
+        ..., help="Provider: googledrive, pixeldrain, onedrive, gofile, 1fichier"
+    ),
+    file_id: int = typer.Argument(..., help="File ID to upload"),
+    zip_link: str | None = typer.Option(None, "--zip-link", help="Zip link URL"),
+    token: str | None = typer.Option(
+        None, "--token", help="OAuth token (googledrive/onedrive)"
+    ),
+    gofile_token: str | None = typer.Option(
+        None, "--gofile-token", help="GoFile token"
+    ),
+    onefichier_token: str | None = typer.Option(
+        None, "--onefichier-token", help="1Fichier token"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    provider_lower = provider.lower()
+    if provider_lower not in _VALID_PROVIDERS:
+        valid = ", ".join(sorted(_VALID_PROVIDERS))
+        raise typer.BadParameter(f"provider must be one of: {valid}")
+
+    endpoint = _VALID_PROVIDERS[provider_lower]
+    payload: dict[str, Any] = {"file_id": file_id}
+    if zip_link:
+        payload["zip_link"] = zip_link
+    if token:
+        key = "google_token" if provider_lower == "googledrive" else "onedrive_token"
+        payload[key] = token
+    if gofile_token:
+        payload["gofile_token"] = gofile_token
+    if onefichier_token:
+        payload["onefichier_token"] = onefichier_token
+
+    if dry_run_guard(ctx, f"POST {endpoint}", payload=payload, dry_run=dry_run):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post(endpoint, json=payload)
+    print_json_envelope(ctx, data, "integrations upload", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        msg = f"Upload queued to {provider_lower} for file {file_id}."
+        print_panel(msg, "Upload Queued")
+
+
+@app.command(
+    help=(
+        "GET /integration/jobs — List all integration jobs\n\n"
+        "Example: torbox integrations list-jobs"
+    )
+)
+@handle_errors
+def list_jobs(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get("/integration/jobs")
+    print_json_envelope(ctx, data, "integrations list-jobs", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if isinstance(data.get("data"), list):
+        if not _is_quiet(ctx):
+            print_table(data["data"], "All Integration Jobs")
+    elif not _is_quiet(ctx):
+        print_panel("Integration jobs list retrieved.", "Integration Jobs")

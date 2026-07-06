@@ -23,7 +23,7 @@ class TorBoxClient:
     """Base HTTP client handling auth, retries, and error mapping."""
 
     _RATE_LIMITS: dict[tuple[str, str], tuple[int, int]] = {
-        ("/torrents/createtorrent", "POST"): (60, 3600),
+        ("/torrents/createtorrent", "POST"): (300, 60),
         ("/usenet/createusenetdownload", "POST"): (60, 3600),
         ("/webdl/createwebdownload", "POST"): (60, 3600),
     }
@@ -260,6 +260,14 @@ class TorBoxClient:
         raw = self._execute("POST", endpoint, auth=True, return_raw=True, **kwargs)
         assert isinstance(raw, httpx.Response)
         return raw
+
+    def public_get_absolute(self, url: str, **kwargs: Any) -> dict[str, Any]:
+        """Public GET with an absolute URL (bypasses base_url).
+
+        Use for endpoints that live outside the versioned API path
+        (e.g. the root health check at ``https://api.torbox.app/``).
+        """
+        return self._execute("GET", url, auth=False, return_raw=False, **kwargs)
 
     def public_get_bytes(self, endpoint: str, **kwargs: Any) -> httpx.Response:
         """Public GET without auth, returning raw response object.

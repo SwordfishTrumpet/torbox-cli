@@ -39,6 +39,11 @@ def _get_client(ctx: Context) -> TorBoxClient:
     )
     if ctx.obj is not None:
         ctx.obj[_CLIENT_ATTR] = client
+    # Ensure the underlying httpx.Client (and its connection pool) is closed
+    # when the CLI context tears down, avoiding leaked sockets.
+    call_on_close = getattr(ctx, "call_on_close", None)
+    if callable(call_on_close):
+        call_on_close(client.close)
     return client
 
 
@@ -54,7 +59,8 @@ def _get_field(ctx: Context, local_field: str | None = None) -> str | None:
     if local_field is not None:
         return local_field
     if ctx.obj:
-        return ctx.obj.get("field")  # type: ignore[no-any-return]
+        field = ctx.obj.get("field")
+        return field if isinstance(field, str) else None
     return None
 
 

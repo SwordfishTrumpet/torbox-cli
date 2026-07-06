@@ -239,6 +239,9 @@ def edit(
     alternative_hashes: str | None = typer.Option(
         None, "--alternative-hashes", help="Comma-separated alternative hashes"
     ),
+    airlocked: bool | None = typer.Option(
+        None, "--airlocked", help="Keep file in permanent storage (Airlock)",
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
@@ -248,13 +251,15 @@ def edit(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, str | int] = {"webdl_id": id}
+    payload: dict[str, str | int | bool] = {"webdl_id": id}
     if name:
         payload["name"] = name
     if tags:
         payload["tags"] = tags
     if alternative_hashes:
         payload["alternative_hashes"] = alternative_hashes
+    if airlocked is not None:
+        payload["airlocked"] = airlocked
     if dry_run_guard(
         ctx, "PUT /webdl/editwebdownload", payload=payload, dry_run=dry_run
     ):
@@ -270,7 +275,7 @@ def edit(
 
 @app.command(
     help=(
-        "GET /webdl/hosters — List supported hosters. "
+        "GET /webdl/hosters — List supported hosters with regex patterns. "
         "Auth is optional. Example: torbox webdl hosters"
     )
 )

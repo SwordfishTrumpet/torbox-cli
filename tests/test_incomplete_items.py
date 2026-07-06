@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 from torbox.cli import app
 from torbox.client import TorBoxClient
+from torbox.config import DEFAULT_BASE_URL
 
 runner = CliRunner()
 
@@ -36,40 +37,76 @@ class TestHostersOptionalAuth:
     """Hosters command should work without an API key."""
 
     def test_hosters_without_api_key(
-        self, monkeypatch: Any, tmp_path: Any
+        self, monkeypatch: Any, tmp_path: Any, httpx_mock: Any
     ) -> None:
         """webdl hosters must succeed (JSON stub) when no API key is configured."""
         monkeypatch.delenv("TORBOX_API_KEY", raising=False)
         monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/hosters",
+            json={"success": True, "data": [{"domain": "example.com"}]},
+        )
         result = runner.invoke(app, ["webdl", "hosters", "--json"])
+        assert result.exit_code == 0
         assert "AuthenticationError" not in result.output
         assert "No API key configured" not in result.output
+        # optional_get must NOT send an Authorization header when no key is set.
+        req = httpx_mock.get_requests()[0]
+        assert "authorization" not in {k.lower() for k in req.headers}
 
-    def test_hosters_with_api_key(self, monkeypatch: Any) -> None:
-        """webdl hosters should accept an API key and attempt the request."""
+    def test_hosters_with_api_key(self, monkeypatch: Any, httpx_mock: Any) -> None:
+        """webdl hosters should accept an API key and send it as Bearer auth."""
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/hosters",
+            json={"success": True, "data": [{"domain": "example.com"}]},
+        )
         result = runner.invoke(app, ["webdl", "hosters", "--json"])
-        assert "AuthenticationError" not in result.output
-        assert "No API key configured" not in result.output
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.headers["Authorization"] == "Bearer tb-test-key"
 
 
 class TestNotificationsCommands:
     """Notifications commands are fully implemented with real API calls."""
 
-    def test_notifications_list_human(self, monkeypatch: Any) -> None:
+    def test_notifications_list_human(
+        self, monkeypatch: Any, httpx_mock: Any
+    ) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/notifications/mynotifications",
+            json={"success": True, "data": [{"id": 1, "message": "hi"}]},
+        )
         result = runner.invoke(app, ["notifications", "list"])
-        assert result.exit_code in (0, 1, 2, 3, 4)
+        assert result.exit_code == 0
 
-    def test_notifications_list_json(self, monkeypatch: Any) -> None:
+    def test_notifications_list_json(
+        self, monkeypatch: Any, httpx_mock: Any
+    ) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/notifications/mynotifications",
+            json={"success": True, "data": [{"id": 1, "message": "hi"}]},
+        )
         result = runner.invoke(app, ["notifications", "list", "--json"])
-        assert result.exit_code in (0, 1, 2, 3, 4)
+        assert result.exit_code == 0
+        import json as _json
 
-    def test_notifications_rss_human(self, monkeypatch: Any) -> None:
+        out = _json.loads(result.output)
+        assert out["success"] is True
+
+    def test_notifications_rss_human(
+        self, monkeypatch: Any, httpx_mock: Any
+    ) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/notifications/rss?token=tb-test-key",
+            content=b"<rss></rss>",
+        )
         result = runner.invoke(app, ["notifications", "rss"])
-        assert result.exit_code in (0, 1, 2, 3, 4)
+        assert result.exit_code == 0
+        assert "<rss></rss>" in result.output
 
     def test_notifications_clear_json(self, monkeypatch: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
@@ -80,15 +117,31 @@ class TestNotificationsCommands:
 class TestIntegrationsCommands:
     """Integrations commands (jobs, cancel) are fully implemented."""
 
-    def test_integrations_jobs_human(self, monkeypatch: Any) -> None:
+    def test_integrations_jobs_human(
+        self, monkeypatch: Any, httpx_mock: Any
+    ) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/jobs/abc123",
+            json={"success": True, "data": []},
+        )
         result = runner.invoke(app, ["integrations", "jobs", "abc123"])
-        assert result.exit_code in (0, 1, 2, 3, 4)
+        assert result.exit_code == 0
 
-    def test_integrations_jobs_json(self, monkeypatch: Any) -> None:
+    def test_integrations_jobs_json(
+        self, monkeypatch: Any, httpx_mock: Any
+    ) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/jobs/abc123",
+            json={"success": True, "data": []},
+        )
         result = runner.invoke(app, ["integrations", "jobs", "abc123", "--json"])
-        assert result.exit_code in (0, 1, 2, 3, 4)
+        assert result.exit_code == 0
+        import json as _json
+
+        out = _json.loads(result.output)
+        assert out["success"] is True
 
     def test_integrations_cancel_dry_run(self, monkeypatch: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")

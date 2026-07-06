@@ -271,6 +271,9 @@ def edit(
     alternative_hashes: str | None = typer.Option(
         None, "--alternative-hashes", help="Comma-separated alternative hashes"
     ),
+    airlocked: bool | None = typer.Option(
+        None, "--airlocked", help="Keep file in permanent storage (Airlock)",
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be sent without making the request"
@@ -280,13 +283,15 @@ def edit(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, str | int] = {"usenet_download_id": id}
+    payload: dict[str, str | int | bool] = {"usenet_download_id": id}
     if name:
         payload["name"] = name
     if tags:
         payload["tags"] = tags
     if alternative_hashes:
         payload["alternative_hashes"] = alternative_hashes
+    if airlocked is not None:
+        payload["airlocked"] = airlocked
     if dry_run_guard(
         ctx, "PUT /usenet/editusenetdownload", payload=payload, dry_run=dry_run
     ):

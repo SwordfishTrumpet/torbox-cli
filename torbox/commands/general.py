@@ -15,6 +15,7 @@ from torbox.commands._helpers import (
     handle_errors,
     print_json_envelope,
 )
+from torbox.config import DEFAULT_SERVER_URL
 from torbox.formatters import print_panel
 
 app = typer.Typer(help="General TorBox API endpoints (public, no auth required)")
@@ -156,3 +157,27 @@ def docs(
         print("torbox \\- TorBox CLI")
     else:
         print("Use --man for man page output")
+
+
+@app.command(
+    help=(
+        "GET / — API health check (root endpoint)\n\n"
+        "Example: torbox general ping"
+    )
+)
+@handle_errors
+def ping(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Emit raw JSON"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    """Check API health by hitting the root endpoint."""
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.public_get_absolute(DEFAULT_SERVER_URL)
+    print_json_envelope(ctx, data, "general ping", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    print_panel(str(data), "Pong")

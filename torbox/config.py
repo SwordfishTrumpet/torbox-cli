@@ -12,6 +12,7 @@ from typing import Any
 from dotenv import dotenv_values
 
 DEFAULT_BASE_URL = "https://api.torbox.app/v1/api"
+DEFAULT_SERVER_URL = "https://api.torbox.app"
 DEFAULT_TIMEOUT = 30
 DEFAULT_RETRIES = 3
 MAX_TIMEOUT = 300
