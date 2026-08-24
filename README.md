@@ -69,14 +69,17 @@ The CLI follows a layered design:
 
 ### Installation
 
+The package is distributed via [GitHub Releases](https://github.com/SwordfishTrumpet/torbox-cli/releases)
+(not PyPI). Install from source with pip:
+
 ```bash
-pipx install torbox-cli
+pip install git+https://github.com/SwordfishTrumpet/torbox-cli.git
 ```
 
 Or with `uv`:
 
 ```bash
-uv tool install torbox-cli
+uv tool install --from git+https://github.com/SwordfishTrumpet/torbox-cli.git torbox-cli
 ```
 
 ### Verify Installation
@@ -473,12 +476,6 @@ torbox config doctor --json   # machine-readable output
 - [CHANGELOG.md](CHANGELOG.md) — version history and release notes
 - [TorBox API Documentation](https://torbox.app/)
 - [TorBox Terms of Service](https://torbox.app/terms)
-
-### Install from Source
-
-```bash
-pip install git+https://github.com/SwordfishTrumpet/torbox-cli.git
-```
 
 ---
 
