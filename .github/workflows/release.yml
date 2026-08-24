@@ -30,13 +30,6 @@ jobs:
       - name: Build wheel and sdist
         run: python -m build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: dist
-          if-no-files-found: error
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -44,28 +37,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Publish to PyPI via trusted publishing (OIDC, no stored tokens).
-  # Gated behind the repo variable PUBLISH_PYPI=='true' so a tag push does not
-  # fail while the PyPI-side publisher is not yet configured. To enable:
-  #   1. PyPI account -> Publishing -> Add a new publisher:
-  #      owner SwordfishTrumpet, repo torbox-cli, workflow release.yml,
-  #      environment pypi
-  #   2. gh variable set PUBLISH_PYPI true
-  publish-pypi:
-    needs: github-release
-    if: vars.PUBLISH_PYPI == 'true'
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write  # Trusted publishing
-      contents: read
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1

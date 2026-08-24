@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Helper script to generate a Homebrew formula for torbox-cli.
 
-NOTE: This generates a formula that downloads the sdist from GitHub Releases
-instead of PyPI, since torbox-cli is not distributed via PyPI.
+NOTE: This generates a formula that downloads the sdist from GitHub Releases.
 """
 
 from __future__ import annotations

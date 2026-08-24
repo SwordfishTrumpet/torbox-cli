@@ -69,8 +69,8 @@ The CLI follows a layered design:
 
 ### Installation
 
-The package is distributed via [GitHub Releases](https://github.com/SwordfishTrumpet/torbox-cli/releases)
-(not PyPI). Install from source with pip:
+The package is distributed via [GitHub Releases](https://github.com/SwordfishTrumpet/torbox-cli/releases).
+Install from source with pip:
 
 ```bash
 pip install git+https://github.com/SwordfishTrumpet/torbox-cli.git

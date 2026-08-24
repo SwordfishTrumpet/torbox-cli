@@ -12,9 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.1] - 2026-08-24
 
-### Added
-- `release.yml` gains an optional PyPI publish job using **trusted publishing** (OIDC, no stored tokens). It is gated behind the `PUBLISH_PYPI` repo variable (set it to `true` after configuring the publisher on PyPI) and publishes the exact `dist/` artifacts uploaded by the GitHub Release job.
-
 ### Fixed
 - `ci.yml` smoke-test now checks out with `fetch-depth: 0`, so hatch-vcs builds artifact versions from real release tags instead of the fallback `0.1.devN+...` version string.
 - CI now runs on the `master` default branch — the workflow previously triggered on `main`, which does not exist, so CI never ran on pushes or PRs.
@@ -22,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two CLI error-message tests made robust to ANSI-colored output emitted on CI runners (`GITHUB_ACTIONS=true`); added a `strip_ansi()` test helper.
 
 ### Changed
-- README installation section now documents GitHub Releases as the distribution channel (the package is not published on PyPI): `pip install git+...` and `uv tool install --from git+...`; removed the stale `pipx install torbox-cli` instructions and the duplicate "Install from Source" section.
+- README installation section now documents GitHub Releases as the distribution channel: `pip install git+...` and `uv tool install --from git+...`; removed the stale `pipx install torbox-cli` instructions and the duplicate "Install from Source" section.
 
 ## [1.3.0] - 2026-08-24
 
