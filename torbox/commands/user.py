@@ -318,6 +318,35 @@ def refresh_token(
 
 @app.command(
     help=(
+        "GET /user/referraldata — Referral statistics (referred accounts, "
+        "purchases, days earned)\n\n"
+        "Example: torbox user referral-data"
+    )
+)
+@handle_errors
+def referral_data(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get("/user/referraldata")
+    print_json_envelope(ctx, data, "user referral-data", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, "Referral Data")
+        else:
+            print_panel("Referral data retrieved.", "Referral Data")
+
+
+@app.command(
+    help=(
         "POST /user/addreferral — Add a referral code\n\n"
         "Example: torbox user add-referral REFERRAL123"
     )
