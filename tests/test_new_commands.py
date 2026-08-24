@@ -369,35 +369,35 @@ def test_usenet_export_invalid_info(httpx_mock: Any) -> None:
 
 
 # =============================================================================
-# user auth-device-poll and auth-device-complete
+# user auth-device-token
 # =============================================================================
 
 
-def test_user_auth_device_poll(httpx_mock: Any) -> None:
+def test_user_auth_device_token(httpx_mock: Any) -> None:
     httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/user/auth/device/poll?device_code=dc123",
-        json={"success": True, "data": {"status": "pending"}},
+        url=f"{DEFAULT_BASE_URL}/user/auth/device/token",
+        json={"success": True, "data": {"token": "tb-new-token"}},
     )
-    result = runner.invoke(app, ["user", "auth-device-poll", "dc123", "--json"])
+    result = runner.invoke(app, ["user", "auth-device-token", "dc123", "--json"])
     assert result.exit_code == 0
+    req = httpx_mock.get_requests()[0]
+    assert req.method == "POST"
+    body = json.loads(req.content)
+    assert body["device_code"] == "dc123"
     out = json.loads(result.output)
     assert out["success"] is True
 
 
-def test_user_auth_device_complete(httpx_mock: Any) -> None:
+def test_user_auth_device_token_no_api_key(httpx_mock: Any) -> None:
+    """The device token exchange is a login step and must not require a key."""
     httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/user/auth/device/complete",
+        url=f"{DEFAULT_BASE_URL}/user/auth/device/token",
         json={"success": True, "data": {"token": "tb-new-token"}},
     )
-    result = runner.invoke(
-        app,
-        ["user", "auth-device-complete", "dc123", "--json"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
+    result = runner.invoke(app, ["user", "auth-device-token", "dc123", "--json"])
     assert result.exit_code == 0
     req = httpx_mock.get_requests()[0]
-    body = json.loads(req.content)
-    assert body["device_code"] == "dc123"
+    assert "Authorization" not in req.headers
     out = json.loads(result.output)
     assert out["success"] is True
 
@@ -446,5 +446,6 @@ def test_usenet_help_includes_export() -> None:
 def test_user_help_includes_device_auth() -> None:
     result = runner.invoke(app, ["user", "--help"])
     assert result.exit_code == 0
-    assert "auth-device-poll" in result.output
-    assert "auth-device-complete" in result.output
+    assert "auth-device-token" in result.output
+    assert "auth-device-poll" not in result.output
+    assert "auth-device-complete" not in result.output
