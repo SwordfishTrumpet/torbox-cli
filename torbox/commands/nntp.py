@@ -23,7 +23,7 @@ app = typer.Typer(help="NNTP News Server credentials management")
 
 @app.command(
     help=(
-        "GET /user/nntp/credentials — Retrieve News Server login credentials\n\n"
+        "GET /usenet/provider/account — Retrieve News Server login credentials\n\n"
         "Example: torbox nntp credentials"
     )
 )
@@ -37,7 +37,7 @@ def credentials(
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
-    data: dict[str, Any] = client.get("/user/nntp/credentials")
+    data: dict[str, Any] = client.get("/usenet/provider/account")
     print_json_envelope(ctx, data, "nntp credentials", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
@@ -45,6 +45,7 @@ def credentials(
         item = data.get("data") if isinstance(data, dict) else data
         if isinstance(item, dict):
             from torbox.formatters import print_dict_panel
+
             print_dict_panel(item, "NNTP Credentials")
         else:
             print_panel("NNTP credentials retrieved.", "Credentials")
@@ -52,7 +53,7 @@ def credentials(
 
 @app.command(
     help=(
-        "POST /user/nntp/resetpassword — Reset News Server password\n\n"
+        "POST /usenet/provider/account/resetpw — Reset News Server password\n\n"
         "Example: torbox nntp reset-password"
     )
 )
@@ -66,7 +67,7 @@ def reset_password(
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
-    data: dict[str, Any] = client.post("/user/nntp/resetpassword")
+    data: dict[str, Any] = client.post("/usenet/provider/account/resetpw")
     print_json_envelope(ctx, data, "nntp reset-password", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
