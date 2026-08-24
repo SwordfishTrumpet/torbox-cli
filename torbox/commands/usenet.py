@@ -307,7 +307,8 @@ def edit(
 
 @app.command(
     help=(
-        "POST /usenet/checkcached — Check if usenet hash(es) are cached. "
+        "GET|POST /usenet/checkcached — Check if usenet hash(es) are cached. "
+        "Use --get for quick single-hash checks via query params. "
         "Example: torbox usenet checkcached a1b2c3d4 e5f6g7h8 --list-files"
     )
 )
@@ -322,21 +323,29 @@ def checkcached(
     list_files: bool = typer.Option(
         False, "--list-files", help="Include file details in result"
     ),
+    get: bool = typer.Option(
+        False,
+        "--get",
+        help="Use GET with comma-joined hash query param (URL-limited)",
+    ),
     auto_retry: bool = typer.Option(
         False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
-    payload: dict[str, Any] = {"hashes": list(hashes)}
     params: dict[str, str | int] = {}
     if format:
         params["format"] = format
     if list_files:
         params["list_files"] = 1
-    data: dict[str, Any] = client.post(
-        "/usenet/checkcached", json=payload, params=params
-    )
+    if get:
+        params["hash"] = ",".join(hashes)
+        data: dict[str, Any] = client.get("/usenet/checkcached", params=params)
+    else:
+        data = client.post(
+            "/usenet/checkcached", json={"hashes": list(hashes)}, params=params
+        )
     print_json_envelope(ctx, data, "usenet checkcached", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
