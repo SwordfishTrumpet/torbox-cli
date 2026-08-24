@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `release.yml` gains an optional PyPI publish job using **trusted publishing** (OIDC, no stored tokens). It is gated behind the `PUBLISH_PYPI` repo variable (set it to `true` after configuring the publisher on PyPI) and publishes the exact `dist/` artifacts uploaded by the GitHub Release job.
+
 ### Fixed
+- `ci.yml` smoke-test now checks out with `fetch-depth: 0`, so hatch-vcs builds artifact versions from real release tags instead of the fallback `0.1.devN+...` version string.
 - CI now runs on the `master` default branch — the workflow previously triggered on `main`, which does not exist, so CI never ran on pushes or PRs.
 - `ci.yml` smoke-test sdist glob corrected to `dist/torbox_cli-*.tar.gz` (normalized underscore name); the old `torbox-cli-*.tar.gz` glob never matched.
 - Two CLI error-message tests made robust to ANSI-colored output emitted on CI runners (`GITHUB_ACTIONS=true`); added a `strip_ansi()` test helper.
