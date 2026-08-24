@@ -275,46 +275,6 @@ def test_torrents_export_to_file(httpx_mock: Any, tmp_path: Any) -> None:
 
 
 # =============================================================================
-# queued add
-# =============================================================================
-
-
-def test_queued_add_torrent(httpx_mock: Any) -> None:
-    httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/queued/addqueued",
-        json={"success": True, "data": None},
-    )
-    result = runner.invoke(
-        app,
-        ["queued", "add", "torrent", "42", "--json"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-    req = httpx_mock.get_requests()[0]
-    body = json.loads(req.content)
-    assert body["type"] == "torrent"
-    assert body["id"] == 42
-
-
-def test_queued_add_invalid_type() -> None:
-    result = runner.invoke(
-        app, ["queued", "add", "invalid", "42"], env={"TORBOX_API_KEY": "dummy"}
-    )
-    assert result.exit_code != 0
-    assert "BadParameter" in result.output or "must be one of" in result.output
-
-
-def test_queued_add_dry_run() -> None:
-    result = runner.invoke(
-        app,
-        ["queued", "add", "usenet", "10", "--dry-run"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-    assert "[dry-run]" in result.output
-
-
-# =============================================================================
 # usenet export
 # =============================================================================
 
@@ -431,10 +391,12 @@ def test_stream_help_includes_delete() -> None:
     assert "delete" in result.output
 
 
-def test_queued_help_includes_add() -> None:
+def test_queued_help_has_list_and_control() -> None:
     result = runner.invoke(app, ["queued", "--help"])
     assert result.exit_code == 0
-    assert "add" in result.output
+    assert "list" in result.output
+    assert "control" in result.output
+    assert "add" not in result.output
 
 
 def test_usenet_help_includes_export() -> None:
