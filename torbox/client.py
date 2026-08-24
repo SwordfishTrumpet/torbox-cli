@@ -224,6 +224,9 @@ class TorBoxClient:
     def put(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         return self._request("PUT", endpoint, **kwargs)
 
+    def patch(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
+        return self._request("PATCH", endpoint, **kwargs)
+
     def delete(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         return self._request("DELETE", endpoint, **kwargs)
 

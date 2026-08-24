@@ -24,6 +24,7 @@ from torbox.commands import (
     torrents,
     usenet,
     user,
+    vendors,
     webdl,
 )
 from torbox.exceptions import TorBoxError
@@ -181,6 +182,14 @@ app.add_typer(
     nntp.app,
     name="nntp",
     help="NNTP News Server credentials — credentials, reset-password",
+)
+app.add_typer(
+    vendors.app,
+    name="vendors",
+    help=(
+        "Vendors API (partner accounts) — account, accounts, account-info, "
+        "refresh, register, register-user, remove-user, update-account"
+    ),
 )
 app.add_typer(
     monitor.app,

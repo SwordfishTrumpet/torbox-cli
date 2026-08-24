@@ -15,6 +15,7 @@ from torbox.commands import (
     torrents,
     usenet,
     user,
+    vendors,
     webdl,
 )
 
@@ -31,5 +32,6 @@ __all__ = [
     "torrents",
     "usenet",
     "user",
+    "vendors",
     "webdl",
 ]
