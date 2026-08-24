@@ -231,6 +231,15 @@ class TorBoxClient:
         """Public GET without auth (for general endpoints)."""
         return self._execute("GET", endpoint, auth=False, return_raw=False, **kwargs)
 
+    def public_post(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
+        """Public POST without auth.
+
+        Use for endpoints that must be reachable without an API key, e.g.
+        ``POST /user/auth/device/token`` (the login half of the device
+        authorization flow).
+        """
+        return self._execute("POST", endpoint, auth=False, return_raw=False, **kwargs)
+
     def optional_get(self, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """GET with optional auth: sends Bearer if key is available.
 

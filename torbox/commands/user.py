@@ -255,38 +255,14 @@ def auth_device_start(
 
 @app.command(
     help=(
-        "GET /user/auth/device/poll — Poll device auth status\n"
-        "Example: torbox user auth-device-poll dc123"
+        "POST /user/auth/device/token — Get token from device code\n\n"
+        "Second step of the device authorization flow: exchange the device\n"
+        "code from `auth-device-start` for an API token. No API key required.\n"
+        "Example: torbox user auth-device-token dc123"
     )
 )
 @handle_errors
-def auth_device_poll(
-    ctx: Context,
-    device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
-    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
-    auto_retry: bool = typer.Option(
-        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
-    ),
-) -> None:
-    _set_auto_retry(ctx, auto_retry)
-    client = _get_client(ctx)
-    params: dict[str, str | int] = {"device_code": device_code}
-    data: dict[str, Any] = client.public_get("/user/auth/device/poll", params=params)
-    print_json_envelope(ctx, data, "user auth-device-poll", local_json=json)
-    if _should_json(ctx, json) or _get_field(ctx):
-        return
-    if not _is_quiet(ctx):
-        print_panel("Device auth status polled.", "Device Auth")
-
-
-@app.command(
-    help=(
-        "POST /user/auth/device/complete — Complete device auth flow\n"
-        "Example: torbox user auth-device-complete dc123"
-    )
-)
-@handle_errors
-def auth_device_complete(
+def auth_device_token(
     ctx: Context,
     device_code: str = typer.Argument(..., help="Device code from auth-device-start"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
@@ -297,12 +273,13 @@ def auth_device_complete(
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     payload: dict[str, str] = {"device_code": device_code}
-    data: dict[str, Any] = client.post("/user/auth/device/complete", json=payload)
-    print_json_envelope(ctx, data, "user auth-device-complete", local_json=json)
+    # This endpoint does not require authentication per API docs.
+    data: dict[str, Any] = client.public_post("/user/auth/device/token", json=payload)
+    print_json_envelope(ctx, data, "user auth-device-token", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
     if not _is_quiet(ctx):
-        print_panel("Device auth flow completed.", "Device Auth")
+        print_panel("Device auth token retrieved.", "Device Auth")
 
 
 @app.command(

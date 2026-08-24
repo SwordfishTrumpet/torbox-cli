@@ -145,7 +145,7 @@ torbox --install-completion fish          # fish
 | `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, async-create, edit |
 | `usenet` | list, create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
-| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-poll, auth-device-complete, confirmation |
+| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation |
 | `rss` | list, items, create, edit, delete |
 | `queued` | list, add, control |
 | `stream` | create, data, delete |
@@ -265,7 +265,10 @@ torbox user transactions --limit 5
 torbox user transaction-pdf 123 --output invoice.pdf
 
 # Device authentication flow (no API key needed)
+# Step 1: start the flow, receive a device code
+# Step 2: user verifies the code in the browser, then exchange it for an API token
 torbox user auth-device-start
+torbox user auth-device-token dc123
 
 # Manage RSS feeds
 torbox rss list
