@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-24
+
+### Added
+- **Vendors API command group** — `vendors account`, `accounts`, `account-info`, `refresh`, `register`, `register-user`, `remove-user`, `update-account` (closes #23).
+- **`integrations oauth` subcommand group** — list, info, register, callback, success, unregister, discord-linked-roles for the `/integration/oauth/*` lifecycle (closes #20).
+- **Dropbox upload provider** — `integrations upload dropbox` via POST /integration/dropbox (closes #19).
+- **`user delete`** — DELETE /user/deleteme (closes #16).
+- **`user subscriptions`** — GET /user/subscriptions (closes #15).
+- **`user stats`** — GET /user/stats (closes #14).
+- **`user referral-data`** — GET /user/referraldata (closes #13).
+- **`general stats-30days`** — GET /stats/30days (closes #12).
+- **`torrents exportdata`** — GET /torrents/exportdata (closes #11).
+- **`usenet async-create`** — POST /usenet/asynccreateusenetdownload (closes #10).
+- **`usenet checkcached --get`** — GET variant of checkcached, previously POST-only (closes #9).
+- **`webdl checkcached --batch`** — POST batch cache checks for unlimited hashes (closes #8).
+
+### Fixed
+- Removed `stream delete` and `queued add`, which targeted endpoints absent from the live API (HTTP 404) (closes #22, #21).
+- Repointed `nntp credentials`/`nntp reset-password` from non-existent `/user/nntp/*` routes to the live `/usenet/provider/account` and `/usenet/provider/account/resetpw` endpoints (closes #18).
+- Replaced broken `user auth-device-poll`/`auth-device-complete` with `user auth-device-token` (POST /user/auth/device/token); added `TorBoxClient.public_post()` for auth-less POST endpoints (closes #17).
+
+### Changed
+- README documents intentional non-coverage of the deprecated `/torrents/getqueued` routes and the absence of a `queued add` command.
+
 ## [1.2.0] - 2026-07-06
 
 ### Added
