@@ -87,6 +87,80 @@ class TestTorrentsAsyncCreate:
         assert out["success"] is True
 
 
+class TestUsenetAsyncCreate:
+    def test_async_create_link(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/asynccreateusenetdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["usenet", "async-create", "https://example.com/file.nzb", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        body = req.content.decode()
+        assert "link=https%3A%2F%2Fexample.com%2Ffile.nzb" in body
+
+    def test_async_create_with_options(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/asynccreateusenetdownload",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "usenet",
+                "async-create",
+                "https://example.com/file.nzb",
+                "--name",
+                "My NZB",
+                "--password",
+                "secret",
+                "--post-processing",
+                "3",
+                "--as-queued",
+                "--add-only-if-cached",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        body = httpx_mock.get_requests()[0].content.decode()
+        assert "name=My+NZB" in body
+        assert "password=secret" in body
+        assert "post_processing=3" in body
+        assert "as_queued=1" in body
+        assert "add_only_if_cached=1" in body
+
+    def test_async_create_file(self, httpx_mock: Any, tmp_path: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/asynccreateusenetdownload",
+            json={"success": True, "data": None},
+        )
+        nzb = tmp_path / "test.nzb"
+        nzb.write_bytes(b"<nzb></nzb>")
+        result = runner.invoke(
+            app,
+            ["usenet", "async-create", "--file", str(nzb), "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        assert 'filename="test.nzb"' in req.content.decode()
+
+    def test_async_create_no_source_fails(self) -> None:
+        result = runner.invoke(
+            app,
+            ["usenet", "async-create"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code != 0
+
+
 class TestTorrentsEdit:
     def test_edit_with_name(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(

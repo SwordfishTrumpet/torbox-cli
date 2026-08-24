@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import typer
@@ -99,6 +100,94 @@ def create(
         return
     elif not _is_quiet(ctx):
         print_panel("Usenet download created successfully.", "Created")
+
+
+@app.command(
+    help=(
+        "POST /usenet/asynccreateusenetdownload — Create usenet download "
+        "asynchronously. Returns instantly; errors delivered via notifications. "
+        "Example: torbox usenet async-create 'https://example.com/file.nzb'"
+    )
+)
+@handle_errors
+def async_create(
+    ctx: Context,
+    link: str | None = typer.Argument(
+        None, help="NZB link or URL (mutually exclusive with --file)"
+    ),
+    file: str | None = None,
+    name: str | None = typer.Option(
+        None, "--name", help="Custom name for the download"
+    ),
+    password: str | None = typer.Option(
+        None, "--password", help="Password if required"
+    ),
+    post_processing: int | None = typer.Option(
+        None, "--post-processing", help="Post-processing option for the usenet client"
+    ),
+    as_queued: bool = typer.Option(False, "--as-queued", help="Add as queued download"),
+    add_only_if_cached: bool = typer.Option(
+        False, "--add-only-if-cached", help="Only add if already cached"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent without making the request"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    payload: dict[str, str | int] = {}
+    if link:
+        payload["link"] = link
+    if name:
+        payload["name"] = name
+    if password:
+        payload["password"] = password
+    if post_processing is not None:
+        payload["post_processing"] = post_processing
+    if as_queued:
+        payload["as_queued"] = 1
+    if add_only_if_cached:
+        payload["add_only_if_cached"] = 1
+    if file:
+        path = Path(file)
+        if not path.exists():
+            raise typer.BadParameter(f"File not found: {file}")
+        if dry_run_guard(
+            ctx,
+            "POST /usenet/asynccreateusenetdownload",
+            payload={**payload, "file": file},
+            dry_run=dry_run,
+        ):
+            return
+        with path.open("rb") as fh:
+            files = {"file": (path.name, fh, "application/x-nzb")}
+            data: dict[str, Any] = client.post(
+                "/usenet/asynccreateusenetdownload", data=payload, files=files
+            )
+    else:
+        if not link:
+            raise typer.BadParameter("Either a link or --file is required")
+        if dry_run_guard(
+            ctx,
+            "POST /usenet/asynccreateusenetdownload",
+            payload=payload,
+            dry_run=dry_run,
+        ):
+            return
+        data = client.post("/usenet/asynccreateusenetdownload", data=payload)
+    print_json_envelope(ctx, data, "usenet async-create", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    elif not _is_quiet(ctx):
+        print_panel(
+            "Async usenet download creation submitted. "
+            "Errors delivered via notifications.",
+            "Async Created",
+        )
 
 
 @app.command(
