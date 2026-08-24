@@ -274,6 +274,58 @@ def subscriptions(
 
 @app.command(
     help=(
+        "DELETE /user/deleteme — Permanently delete your TorBox account\n\n"
+        "Requires the confirmation code from `user confirmation` plus a \"yes\" "
+        "confirmation (or --yes). This cannot be undone.\n"
+        "Example: torbox user delete --confirmation-code 123456 --yes"
+    )
+)
+@handle_errors
+def delete(
+    ctx: Context,
+    confirmation_code: int = typer.Option(
+        ..., "--confirmation-code", help="Confirmation code from user confirmation"
+    ),
+    session_token: str | None = typer.Option(
+        None,
+        "--session-token",
+        help="Session token (from the website localStorage) if required",
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent without making the request"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    payload: dict[str, Any] = {"confirmation_code": confirmation_code}
+    if session_token:
+        payload["session_token"] = session_token
+    if dry_run_guard(
+        ctx, "DELETE /user/deleteme", payload=payload, dry_run=dry_run
+    ):
+        return
+    if not yes:
+        answer = input(
+            "This will PERMANENTLY DELETE your TorBox account and all data. "
+            "Type 'yes' to continue: "
+        ).strip().lower()
+        if answer != "yes":
+            raise typer.Exit(code=0)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.delete("/user/deleteme", json=payload)
+    print_json_envelope(ctx, data, "user delete", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel("Account deletion requested.", "Account Deleted")
+
+
+@app.command(
+    help=(
         "GET /user/getconfirmation — Get confirmation code\n"
         "Example: torbox user confirmation"
     )

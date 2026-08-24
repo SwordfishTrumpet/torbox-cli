@@ -1017,6 +1017,67 @@ class TestIntegrationsUpload:
         assert "list-jobs" in result.output
 
 
+class TestUserDelete:
+    def test_delete_with_yes(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/deleteme",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "user",
+                "delete",
+                "--confirmation-code",
+                "123456",
+                "--session-token",
+                "sess_abc",
+                "--yes",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "DELETE"
+        body = json.loads(req.content)
+        assert body["confirmation_code"] == 123456
+        assert body["session_token"] == "sess_abc"
+
+    def test_delete_prompt_yes(self, monkeypatch: Any, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/deleteme",
+            json={"success": True, "data": None},
+        )
+        monkeypatch.setattr("builtins.input", lambda _: "yes")
+        result = runner.invoke(
+            app,
+            ["user", "delete", "--confirmation-code", "123456", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert len(httpx_mock.get_requests()) == 1
+
+    def test_delete_prompt_denied(self, monkeypatch: Any) -> None:
+        monkeypatch.setattr("builtins.input", lambda _: "n")
+        result = runner.invoke(
+            app,
+            ["user", "delete", "--confirmation-code", "123456"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+
+    def test_delete_dry_run(self) -> None:
+        result = runner.invoke(
+            app,
+            ["user", "delete", "--confirmation-code", "123456", "--dry-run"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "[dry-run]" in result.output
+        assert "DELETE /user/deleteme" in result.output
+
+
 class TestUserSubscriptions:
     def test_subscriptions(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
