@@ -503,7 +503,7 @@ class TestIntegrations:
 class TestNntp:
     def test_credentials(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
-            url=f"{DEFAULT_BASE_URL}/user/nntp/credentials",
+            url=f"{DEFAULT_BASE_URL}/usenet/provider/account",
             json={"success": True, "data": {"username": "user", "password": "pass"}},
         )
         result = runner.invoke(
@@ -518,7 +518,7 @@ class TestNntp:
 
     def test_reset_password(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
-            url=f"{DEFAULT_BASE_URL}/user/nntp/resetpassword",
+            url=f"{DEFAULT_BASE_URL}/usenet/provider/account/resetpw",
             json={"success": True, "data": {"password": "newpass"}},
         )
         result = runner.invoke(
