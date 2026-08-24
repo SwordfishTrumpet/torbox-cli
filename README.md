@@ -147,7 +147,7 @@ torbox --install-completion fish          # fish
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
 | `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation |
 | `rss` | list, items, create, edit, delete |
-| `queued` | list, add, control |
+| `queued` | list, control |
 | `stream` | create, data, delete |
 | `notifications` | list, rss, test, clear |
 | `monitor` | htop-style live TUI dashboard (torrents, usenet, webdl, queued) |
@@ -164,6 +164,9 @@ Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
 - **Note:** `https://api.torbox.app/openapi.json` still lists the legacy routes even
   though they respond with 410 — audit coverage against the live server, not just
   the spec.
+- **No `queued add`:** there is no route to add a queued download. Create queued
+  items directly by passing `--as-queued` to `torrents create`, `torrents async-create`,
+  `webdl create`, or `webdl async-create`.
 
 ### Global Flags
 
@@ -288,8 +291,9 @@ torbox webdl create https://example.com/file.zip
 torbox webdl hosters --json          # List supported hosters (no auth needed)
 
 # Manage queued downloads
+# (queued items are created with --as-queued on the create endpoints)
 torbox queued list
-torbox queued add 42 --type torrent
+torbox queued control 5 delete --yes
 
 # Manage notifications
 torbox notifications list
