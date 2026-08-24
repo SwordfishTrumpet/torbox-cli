@@ -166,49 +166,6 @@ def test_torrents_files_no_files(httpx_mock: Any) -> None:
 
 
 # =============================================================================
-# stream delete
-# =============================================================================
-
-
-def test_stream_delete_with_yes(httpx_mock: Any) -> None:
-    httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/stream/deletestream",
-        json={"success": True, "data": None},
-    )
-    result = runner.invoke(
-        app,
-        ["stream", "delete", "abc123", "--yes", "--json"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-    req = httpx_mock.get_requests()[0]
-    assert req.method == "DELETE"
-    body = json.loads(req.content)
-    assert body["token"] == "abc123"
-
-
-def test_stream_delete_dry_run() -> None:
-    result = runner.invoke(
-        app,
-        ["stream", "delete", "abc123", "--yes", "--dry-run"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-    assert "[dry-run]" in result.output
-    assert "DELETE /stream/deletestream" in result.output
-
-
-def test_stream_delete_prompt_denied(monkeypatch: Any) -> None:
-    monkeypatch.setattr("builtins.input", lambda _: "n")
-    result = runner.invoke(
-        app,
-        ["stream", "delete", "abc123"],
-        env={"TORBOX_API_KEY": "dummy"},
-    )
-    assert result.exit_code == 0
-
-
-# =============================================================================
 # torrents export edge cases
 # =============================================================================
 
@@ -385,10 +342,12 @@ def test_torrents_help_includes_files() -> None:
     assert "files" in result.output
 
 
-def test_stream_help_includes_delete() -> None:
+def test_stream_help_excludes_delete() -> None:
     result = runner.invoke(app, ["stream", "--help"])
     assert result.exit_code == 0
-    assert "delete" in result.output
+    assert "create" in result.output
+    assert "data" in result.output
+    assert "delete" not in result.output
 
 
 def test_queued_help_has_list_and_control() -> None:
