@@ -143,7 +143,7 @@ torbox --install-completion fish          # fish
 |-------|----------|
 | `general` | status, stats, changelogs, speedtest |
 | `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, async-create, edit |
-| `usenet` | list, create, control, requestdl, export, edit, checkcached |
+| `usenet` | list, create, async-create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
 | `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation |
 | `rss` | list, items, create, edit, delete |
@@ -283,6 +283,7 @@ torbox rss delete 2 --yes
 # Manage usenet downloads
 torbox usenet list --limit 10
 torbox usenet create https://example.com/file.nzb --name "My NZB"
+torbox usenet async-create https://example.com/file.nzb --as-queued
 torbox usenet control 42 --operation delete --yes
 
 # Manage web downloads
