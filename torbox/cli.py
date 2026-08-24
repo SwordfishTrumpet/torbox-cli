@@ -166,7 +166,7 @@ app.add_typer(
     rss.app, name="rss", help="RSS: list feeds, items, create/edit/delete feeds"
 )
 app.add_typer(queued.app, name="queued", help="Queued downloads: list, control")
-app.add_typer(stream.app, name="stream", help="Stream management: create, data, delete")
+app.add_typer(stream.app, name="stream", help="Stream management: create, data")
 app.add_typer(
     notifications.app,
     name="notifications",

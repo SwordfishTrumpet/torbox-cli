@@ -148,7 +148,7 @@ torbox --install-completion fish          # fish
 | `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation |
 | `rss` | list, items, create, edit, delete |
 | `queued` | list, control |
-| `stream` | create, data, delete |
+| `stream` | create, data |
 | `notifications` | list, rss, test, clear |
 | `monitor` | htop-style live TUI dashboard (torrents, usenet, webdl, queued) |
 | `integrations` | jobs, cancel |
@@ -300,10 +300,9 @@ torbox notifications list
 torbox notifications test
 torbox notifications clear --yes
 
-# Stream management
+# Stream management (no revocation endpoint exists in the API)
 torbox stream create 42 --file-id 1 --type torrent
 torbox stream data <token>
-torbox stream delete <token> --type torrent
 
 # Cloud upload jobs (integrations)
 torbox integrations jobs <job-id>
