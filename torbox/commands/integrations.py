@@ -139,22 +139,28 @@ _VALID_PROVIDERS = {
     "onedrive": "/integration/onedrive",
     "gofile": "/integration/gofile",
     "1fichier": "/integration/1fichier",
+    "dropbox": "/integration/dropbox",
 }
 
 
 @app.command(
     help=(
         "POST /integration/{provider} — Queue cloud upload for a file\n\n"
-        "Supported providers: googledrive, pixeldrain, onedrive, gofile, 1fichier\n\n"
+        "Supported providers: googledrive, pixeldrain, onedrive, gofile, "
+        "1fichier, dropbox\n\n"
         "Example: torbox integrations upload googledrive 42 --token gtoken\n"
-        "         torbox integrations upload pixeldrain 42"
+        "         torbox integrations upload dropbox 42 --dropbox-token dbtoken"
     )
 )
 @handle_errors
 def upload(
     ctx: Context,
     provider: str = typer.Argument(
-        ..., help="Provider: googledrive, pixeldrain, onedrive, gofile, 1fichier"
+        ...,
+        help=(
+            "Provider: googledrive, pixeldrain, onedrive, gofile, "
+            "1fichier, dropbox"
+        ),
     ),
     file_id: int = typer.Argument(..., help="File ID to upload"),
     zip_link: str | None = typer.Option(None, "--zip-link", help="Zip link URL"),
@@ -166,6 +172,9 @@ def upload(
     ),
     onefichier_token: str | None = typer.Option(
         None, "--onefichier-token", help="1Fichier token"
+    ),
+    dropbox_token: str | None = typer.Option(
+        None, "--dropbox-token", help="Dropbox OAuth token"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
@@ -192,6 +201,8 @@ def upload(
         payload["gofile_token"] = gofile_token
     if onefichier_token:
         payload["onefichier_token"] = onefichier_token
+    if dropbox_token:
+        payload["dropbox_token"] = dropbox_token
 
     if dry_run_guard(ctx, f"POST {endpoint}", payload=payload, dry_run=dry_run):
         return
