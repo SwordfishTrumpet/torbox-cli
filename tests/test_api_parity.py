@@ -1394,6 +1394,149 @@ class TestSpeedtestParams:
         assert "test_length" not in str(req.url)
 
 
+class TestVendors:
+    def test_account(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/account",
+            json={"success": True, "data": {"vendor_name": "MyApp"}},
+        )
+        result = runner.invoke(
+            app, ["vendors", "account", "--json"], env={"TORBOX_API_KEY": "dummy"}
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["data"]["data"]["vendor_name"] == "MyApp"
+
+    def test_accounts(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/getaccounts",
+            json={"success": True, "data": []},
+        )
+        result = runner.invoke(
+            app, ["vendors", "accounts", "--json"], env={"TORBOX_API_KEY": "dummy"}
+        )
+        assert result.exit_code == 0
+        assert json.loads(result.output)["success"] is True
+
+    def test_account_info(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/getaccount?user_auth_id=u123",
+            json={"success": True, "data": {"user_auth_id": "u123"}},
+        )
+        result = runner.invoke(
+            app,
+            ["vendors", "account-info", "u123", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert "user_auth_id=u123" in str(httpx_mock.get_requests()[0].url)
+
+    def test_refresh_uses_patch(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/refresh",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app, ["vendors", "refresh", "--json"], env={"TORBOX_API_KEY": "dummy"}
+        )
+        assert result.exit_code == 0
+        assert httpx_mock.get_requests()[0].method == "PATCH"
+
+    def test_register(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/register",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "vendors",
+                "register",
+                "--vendor-name",
+                "MyApp",
+                "--vendor-url",
+                "https://example.com",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        body = json.loads(httpx_mock.get_requests()[0].content)
+        assert body["vendor_name"] == "MyApp"
+        assert body["vendor_url"] == "https://example.com"
+
+    def test_register_user(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/registeruser",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "vendors",
+                "register-user",
+                "--user-email",
+                "u@example.com",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        body = json.loads(httpx_mock.get_requests()[0].content)
+        assert body["user_email"] == "u@example.com"
+
+    def test_remove_user(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/removeuser?user_auth_id=u123",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["vendors", "remove-user", "u123", "--yes", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "DELETE"
+        assert "user_auth_id=u123" in str(req.url)
+
+    def test_update_account(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/vendors/updateaccount",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["vendors", "update-account", "--vendor-name", "NewName", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "PUT"
+        body = json.loads(req.content)
+        assert body["vendor_name"] == "NewName"
+
+    def test_help(self) -> None:
+        result = runner.invoke(app, ["vendors", "--help"])
+        assert result.exit_code == 0
+        for cmd in (
+            "account",
+            "accounts",
+            "account-info",
+            "refresh",
+            "register",
+            "register-user",
+            "remove-user",
+            "update-account",
+        ):
+            assert cmd in result.output
+
+    def test_top_level_help_has_vendors(self) -> None:
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        assert "vendors" in result.output
+
+
 class TestGeneralStats30Days:
     def test_stats_30days(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
