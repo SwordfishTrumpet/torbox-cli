@@ -686,6 +686,22 @@ class TestIntegrationsUpload:
         body = json.loads(req.content)
         assert body["file_id"] == 42
 
+    def test_upload_dropbox(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/dropbox",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "upload", "dropbox", "42", "--dropbox-token", "dbtoken"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        body = json.loads(req.content)
+        assert body["file_id"] == 42
+        assert body["dropbox_token"] == "dbtoken"
+
     def test_upload_onedrive(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/integration/onedrive",
