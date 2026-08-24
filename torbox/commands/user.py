@@ -200,6 +200,49 @@ def transaction_pdf(
 
 @app.command(
     help=(
+        "GET /user/stats — Account statistics (general / bandwidth)\n\n"
+        "Example: torbox user stats --json\n"
+        "         torbox user stats --bandwidth --bandwidth-grouping"
+    )
+)
+@handle_errors
+def stats(
+    ctx: Context,
+    general: bool = typer.Option(False, "--general", help="Include general stats"),
+    bandwidth: bool = typer.Option(
+        False, "--bandwidth", help="Include bandwidth stats"
+    ),
+    bandwidth_grouping: bool = typer.Option(
+        False, "--bandwidth-grouping", help="Include bandwidth grouping stats"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    params: dict[str, str] = {}
+    if general:
+        params["general"] = "true"
+    if bandwidth:
+        params["bandwidth"] = "true"
+    if bandwidth_grouping:
+        params["bandwidth_grouping"] = "true"
+    data: dict[str, Any] = client.get("/user/stats", params=params)
+    print_json_envelope(ctx, data, "user stats", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, "User Stats")
+        else:
+            print_panel("User stats retrieved.", "User Stats")
+
+
+@app.command(
+    help=(
         "GET /user/getconfirmation — Get confirmation code\n"
         "Example: torbox user confirmation"
     )

@@ -1017,6 +1017,46 @@ class TestIntegrationsUpload:
         assert "list-jobs" in result.output
 
 
+class TestUserStats:
+    def test_stats(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/stats",
+            json={"success": True, "data": {"total_downloads": 10}},
+        )
+        result = runner.invoke(
+            app, ["user", "stats", "--json"], env={"TORBOX_API_KEY": "dummy"}
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_stats_with_flags(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=(
+                f"{DEFAULT_BASE_URL}/user/stats"
+                "?general=true&bandwidth=true&bandwidth_grouping=true"
+            ),
+            json={"success": True, "data": {}},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "user",
+                "stats",
+                "--general",
+                "--bandwidth",
+                "--bandwidth-grouping",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert "general=true" in str(req.url)
+        assert "bandwidth=true" in str(req.url)
+        assert "bandwidth_grouping=true" in str(req.url)
+
+
 class TestUserReferralData:
     def test_referral_data(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
