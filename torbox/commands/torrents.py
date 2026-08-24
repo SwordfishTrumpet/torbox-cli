@@ -430,6 +430,85 @@ def export(
 
 @app.command(
     help=(
+        "GET /torrents/exportdata — Export torrent magnet or .torrent file\n\n"
+        "Example: torbox torrents exportdata 42 --type magnet\n"
+        "         torbox torrents exportdata 42 --type file --output movie.torrent"
+    )
+)
+@handle_errors
+def exportdata(
+    ctx: Context,
+    id: int,
+    type: str = typer.Option(
+        "magnet", "--type", help="Export type: magnet | file"
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path for --type file (default: stdout)",
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be sent without making the request"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    """Export a torrent's magnet link or raw .torrent bytes by ID."""
+    _set_auto_retry(ctx, auto_retry)
+    type = type.lower()
+    if type not in {"magnet", "file"}:
+        raise typer.BadParameter("--type must be one of: magnet, file")
+    if dry_run_guard(
+        ctx,
+        f"GET /torrents/exportdata?torrent_id={id}&type={type}",
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    params: dict[str, str | int] = {"torrent_id": id, "type": type}
+    resp = client.get_bytes("/torrents/exportdata", params=params)
+    # The endpoint returns JSON for --type magnet and raw bytes for --type file.
+    try:
+        data: dict[str, Any] = resp.json()
+    except ValueError:
+        raw = resp.content
+        if _should_json(ctx, json) or _get_field(ctx):
+            meta = {
+                "success": True,
+                "data": {
+                    "id": id,
+                    "type": type,
+                    "size": len(raw),
+                    "filename": output,
+                },
+            }
+            print_json_envelope(ctx, meta, "torrents exportdata", local_json=json)
+            return
+        if output:
+            Path(output).write_bytes(raw)
+            if not _is_quiet(ctx):
+                print_panel(
+                    f"Saved {len(raw)} bytes to {output}", f"Export {id}"
+                )
+        else:
+            sys.stdout.buffer.write(raw)
+        return
+    print_json_envelope(ctx, data, "torrents exportdata", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, f"Export Data {id}")
+        else:
+            print_panel("Torrent export data retrieved.", f"Export {id}")
+
+
+@app.command(
+    help=(
         "POST /torrents/asynccreatetorrent — Create torrent asynchronously. "
         "Returns instantly; errors delivered via notifications. "
         "Example: torbox torrents async-create --magnet 'magnet:?xt=...'"

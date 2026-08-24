@@ -821,6 +821,69 @@ class TestTorrentsTorrentInfo:
         assert "torrentinfo" in result.output
 
 
+class TestTorrentsExportData:
+    def test_exportdata_magnet_json(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=(
+                f"{DEFAULT_BASE_URL}/torrents/exportdata"
+                "?torrent_id=42&type=magnet"
+            ),
+            json={
+                "success": True,
+                "data": "magnet:?xt=urn:btih:abc123",
+            },
+        )
+        result = runner.invoke(
+            app,
+            ["torrents", "exportdata", "42", "--type", "magnet", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "GET"
+        assert "torrent_id=42" in str(req.url)
+        assert "type=magnet" in str(req.url)
+        out = json.loads(result.output)
+        assert out["data"]["data"] == "magnet:?xt=urn:btih:abc123"
+
+    def test_exportdata_file_writes_bytes(
+        self, httpx_mock: Any, tmp_path: Any
+    ) -> None:
+        httpx_mock.add_response(
+            url=(
+                f"{DEFAULT_BASE_URL}/torrents/exportdata"
+                "?torrent_id=42&type=file"
+            ),
+            content=b"\x00torrent-data",
+            headers={"content-type": "application/x-bittorrent"},
+        )
+        out_path = tmp_path / "movie.torrent"
+        result = runner.invoke(
+            app,
+            [
+                "torrents",
+                "exportdata",
+                "42",
+                "--type",
+                "file",
+                "--output",
+                str(out_path),
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert out_path.read_bytes() == b"\x00torrent-data"
+
+    def test_exportdata_invalid_type(self) -> None:
+        result = runner.invoke(
+            app,
+            ["torrents", "exportdata", "42", "--type", "bogus"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code != 0
+        assert "must be one of: magnet, file" in result.output
+
+
 class TestIntegrationsUpload:
     def test_upload_googledrive(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
