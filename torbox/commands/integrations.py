@@ -241,3 +241,272 @@ def list_jobs(
             print_table(data["data"], "All Integration Jobs")
     elif not _is_quiet(ctx):
         print_panel("Integration jobs list retrieved.", "Integration Jobs")
+
+
+oauth_app = typer.Typer(
+    help="Integration OAuth lifecycle — list, register, unregister, callback, success"
+)
+
+
+@oauth_app.command(
+    name="list",
+    help=(
+        "GET /integration/oauth/me — List your OAuth integrations\n\n"
+        "Example: torbox integrations oauth list"
+    ),
+)
+@handle_errors
+def oauth_list(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get("/integration/oauth/me")
+    print_json_envelope(ctx, data, "integrations oauth list", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, "OAuth Integrations")
+        else:
+            print_panel("OAuth integrations retrieved.", "OAuth")
+
+
+@oauth_app.command(
+    name="info",
+    help=(
+        "GET /integration/oauth/{provider} — OAuth status for a provider\n\n"
+        "Example: torbox integrations oauth info googledrive"
+    ),
+)
+@handle_errors
+def oauth_info(
+    ctx: Context,
+    provider: str = typer.Argument(..., help="Provider name"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get(f"/integration/oauth/{provider}")
+    print_json_envelope(ctx, data, "integrations oauth info", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, f"OAuth {provider}")
+        else:
+            print_panel(f"OAuth status for {provider} retrieved.", "OAuth")
+
+
+@oauth_app.command(
+    name="register",
+    help=(
+        "POST /integration/oauth/{provider}/register — Register an OAuth "
+        "integration\n\n"
+        "Example: torbox integrations oauth register googledrive "
+        "--token gtoken --refresh-token grefresh"
+    ),
+)
+@handle_errors
+def oauth_register(
+    ctx: Context,
+    provider: str = typer.Argument(..., help="Provider name"),
+    token: str | None = typer.Option(None, "--token", help="OAuth token"),
+    refresh_token: str | None = typer.Option(
+        None, "--refresh-token", help="OAuth refresh token"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    payload: dict[str, str] = {}
+    if token:
+        payload["token"] = token
+    if refresh_token:
+        payload["refresh_token"] = refresh_token
+    if dry_run_guard(
+        ctx,
+        f"POST /integration/oauth/{provider}/register",
+        payload=payload,
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post(
+        f"/integration/oauth/{provider}/register", json=payload
+    )
+    print_json_envelope(ctx, data, "integrations oauth register", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"OAuth integration {provider} registered.", "OAuth")
+
+
+@oauth_app.command(
+    name="callback",
+    help=(
+        "GET|POST /integration/oauth/{provider}/callback — OAuth callback "
+        "endpoint (both methods documented)\n\n"
+        "Example: torbox integrations oauth callback googledrive"
+    ),
+)
+@handle_errors
+def oauth_callback(
+    ctx: Context,
+    provider: str = typer.Argument(..., help="Provider name"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    if dry_run_guard(
+        ctx, f"GET /integration/oauth/{provider}/callback", dry_run=dry_run
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get(f"/integration/oauth/{provider}/callback")
+    print_json_envelope(ctx, data, "integrations oauth callback", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"OAuth callback for {provider} completed.", "OAuth")
+
+
+@oauth_app.command(
+    name="success",
+    help=(
+        "GET /integration/oauth/{provider}/success — OAuth success page\n\n"
+        "Example: torbox integrations oauth success googledrive"
+    ),
+)
+@handle_errors
+def oauth_success(
+    ctx: Context,
+    provider: str = typer.Argument(..., help="Provider name"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get(f"/integration/oauth/{provider}/success")
+    print_json_envelope(ctx, data, "integrations oauth success", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"OAuth success page for {provider} retrieved.", "OAuth")
+
+
+@oauth_app.command(
+    name="unregister",
+    help=(
+        "DELETE /integration/oauth/{provider}/unregister — Unregister an OAuth "
+        "integration\n\n"
+        "Example: torbox integrations oauth unregister googledrive --yes"
+    ),
+)
+@handle_errors
+def oauth_unregister(
+    ctx: Context,
+    provider: str = typer.Argument(..., help="Provider name"),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    if dry_run_guard(
+        ctx,
+        f"DELETE /integration/oauth/{provider}/unregister",
+        dry_run=dry_run,
+    ):
+        return
+    if not yes:
+        answer = (
+            input(
+                f"Are you sure you want to unregister OAuth integration "
+                f"{provider}? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
+        if answer not in {"y", "yes"}:
+            raise typer.Exit(code=0)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.delete(f"/integration/oauth/{provider}/unregister")
+    print_json_envelope(ctx, data, "integrations oauth unregister", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel(f"OAuth integration {provider} unregistered.", "OAuth")
+
+
+@oauth_app.command(
+    name="discord-linked-roles",
+    help=(
+        "POST /integration/oauth/discord/linked_roles — Update Discord "
+        "linked roles\n\n"
+        "Example: torbox integrations oauth discord-linked-roles "
+        "--discord-token dtoken"
+    ),
+)
+@handle_errors
+def oauth_discord_linked_roles(
+    ctx: Context,
+    discord_token: str = typer.Option(
+        ..., "--discord-token", help="Discord OAuth token"
+    ),
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show request without sending"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    payload: dict[str, str] = {"discord_token": discord_token}
+    if dry_run_guard(
+        ctx,
+        "POST /integration/oauth/discord/linked_roles",
+        payload=payload,
+        dry_run=dry_run,
+    ):
+        return
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.post(
+        "/integration/oauth/discord/linked_roles", json=payload
+    )
+    print_json_envelope(
+        ctx, data, "integrations oauth discord-linked-roles", local_json=json
+    )
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if not _is_quiet(ctx):
+        print_panel("Discord linked roles updated.", "OAuth")
+
+
+app.add_typer(oauth_app, name="oauth")
