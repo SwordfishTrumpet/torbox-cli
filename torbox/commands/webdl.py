@@ -348,7 +348,8 @@ def requestdl(
 
 @app.command(
     help=(
-        "GET /webdl/checkcached — Check if hash(es) are cached by MD5 of the link. "
+        "GET|POST /webdl/checkcached — Check if hash(es) are cached by MD5 "
+        "of the link. Use --batch for many hashes (POST, nearly unlimited). "
         "Example: torbox webdl checkcached a1b2c3d4,e5f6 --format object"
     ),
 )
@@ -362,6 +363,9 @@ def checkcached(
     list_files: bool = typer.Option(
         False, "--list-files", help="Include list of files in response"
     ),
+    batch: bool = typer.Option(
+        False, "--batch", help="Use POST for unlimited hash checking"
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     auto_retry: bool = typer.Option(
         False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
@@ -369,12 +373,18 @@ def checkcached(
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
-    params: dict[str, str | int] = {"hash": ",".join(hashes)}
+    params: dict[str, str | int] = {}
     if format:
         params["format"] = format
     if list_files:
         params["list_files"] = 1
-    data: dict[str, Any] = client.get("/webdl/checkcached", params=params)
+    if batch:
+        data: dict[str, Any] = client.post(
+            "/webdl/checkcached", json={"hashes": hashes}, params=params
+        )
+    else:
+        params["hash"] = ",".join(hashes)
+        data = client.get("/webdl/checkcached", params=params)
     print_json_envelope(ctx, data, "webdl checkcached", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return

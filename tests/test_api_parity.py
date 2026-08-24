@@ -329,6 +329,56 @@ class TestWebdlCheckcached:
         assert "format=list" in str(req.url)
         assert "list_files=1" in str(req.url)
 
+    def test_checkcached_batch_uses_post(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/checkcached",
+            json={"success": True, "data": {}},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "webdl",
+                "checkcached",
+                "md5hash1",
+                "md5hash2",
+                "--batch",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        body = json.loads(req.content)
+        assert body["hashes"] == ["md5hash1", "md5hash2"]
+
+    def test_checkcached_batch_with_format_and_list_files(
+        self, httpx_mock: Any
+    ) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/webdl/checkcached?format=list&list_files=1",
+            json={"success": True, "data": {}},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "webdl",
+                "checkcached",
+                "abc123",
+                "--batch",
+                "--format",
+                "list",
+                "--list-files",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        assert "format=list" in str(req.url)
+        assert "list_files=1" in str(req.url)
+
 
 class TestWebdlEdit:
     def test_edit_basic(self, httpx_mock: Any) -> None:
