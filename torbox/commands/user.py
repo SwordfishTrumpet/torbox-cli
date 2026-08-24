@@ -243,6 +243,37 @@ def stats(
 
 @app.command(
     help=(
+        "GET /user/subscriptions — Active/expired subscription info\n\n"
+        "Example: torbox user subscriptions"
+    )
+)
+@handle_errors
+def subscriptions(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.get("/user/subscriptions")
+    print_json_envelope(ctx, data, "user subscriptions", local_json=json)
+    if _should_json(ctx, json) or _get_field(ctx):
+        return
+    if isinstance(data.get("data"), list):
+        if not _is_quiet(ctx):
+            print_table(data["data"], "Subscriptions")
+    elif not _is_quiet(ctx):
+        item = data.get("data") if isinstance(data, dict) else data
+        if isinstance(item, dict):
+            print_dict_panel(item, "Subscriptions")
+        else:
+            print_panel("Subscription info retrieved.", "Subscriptions")
+
+
+@app.command(
+    help=(
         "GET /user/getconfirmation — Get confirmation code\n"
         "Example: torbox user confirmation"
     )
