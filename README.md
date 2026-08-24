@@ -155,6 +155,16 @@ torbox --install-completion fish          # fish
 
 Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
 
+### API Coverage Notes
+
+- **Intentionally not implemented:** `/torrents/getqueued` and `/torrents/controlqueued`
+  were deprecated by TorBox v6.2 — the live API returns `HTTP 410 DEPRECATED` for
+  them (error code `DEPRECATED`, "use /v1/api/queued/getqueued instead"). Use
+  `torbox queued list` / `torbox queued control` instead.
+- **Note:** `https://api.torbox.app/openapi.json` still lists the legacy routes even
+  though they respond with 410 — audit coverage against the live server, not just
+  the spec.
+
 ### Global Flags
 
 These flags are available on every command and must be placed **before** the subcommand:
