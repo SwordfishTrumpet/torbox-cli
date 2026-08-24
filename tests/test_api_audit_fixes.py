@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from tests.conftest import strip_ansi
 from torbox.cli import app
 from torbox.client import TorBoxClient
 from torbox.config import DEFAULT_BASE_URL
@@ -78,7 +79,7 @@ def test_torrents_create_requires_magnet_or_file() -> None:
         env={"TORBOX_API_KEY": "dummy"},
     )
     assert result.exit_code != 0
-    assert "Either --magnet or --file is required" in result.output
+    assert "Either --magnet or --file is required" in strip_ansi(result.output)
 
 
 # --- Torrents export using get_bytes ---

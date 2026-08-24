@@ -7,6 +7,7 @@ from typing import Any
 
 from typer.testing import CliRunner
 
+from tests.conftest import strip_ansi
 from torbox.cli import app
 from torbox.config import DEFAULT_BASE_URL
 from torbox.exceptions import ServerError, map_error_code
@@ -91,7 +92,7 @@ def test_torrents_control_no_id_no_all() -> None:
         env={"TORBOX_API_KEY": "dummy"},
     )
     assert result.exit_code != 0
-    assert "Either provide an ID or use --all" in result.output
+    assert "Either provide an ID or use --all" in strip_ansi(result.output)
 
 
 # --- Torrents requestdl parameters ---

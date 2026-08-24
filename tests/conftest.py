@@ -8,10 +8,22 @@ the resulting error. This keeps the suite deterministic and offline.
 
 from __future__ import annotations
 
+import re
 import socket
 from typing import Any
 
 import pytest
+
+# ANSI SGR escape sequences: CI runners (GITHUB_ACTIONS=true) make rich/click
+# render colored output, which interleaves escape codes into option names
+# (e.g. "--all" becomes "-" + "-all" styled spans), breaking plain-text
+# substring assertions. Strip them before asserting on CLI output.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI color/format escape sequences from CLI output."""
+    return _ANSI_RE.sub("", text)
 
 _real_connect = socket.socket.connect
 _attempts: list[str] = []

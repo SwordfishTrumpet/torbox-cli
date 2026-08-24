@@ -68,6 +68,6 @@ jobs:
       - name: Smoke install sdist
         run: |
           pip uninstall -y torbox-cli
-          pip install dist/torbox-cli-*.tar.gz
+          pip install dist/torbox_cli-*.tar.gz
           torbox --version
           torbox general --help

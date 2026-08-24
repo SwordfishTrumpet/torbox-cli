@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- CI now runs on the `master` default branch — the workflow previously triggered on `main`, which does not exist, so CI never ran on pushes or PRs.
+- `ci.yml` smoke-test sdist glob corrected to `dist/torbox_cli-*.tar.gz` (normalized underscore name); the old `torbox-cli-*.tar.gz` glob never matched.
+- Two CLI error-message tests made robust to ANSI-colored output emitted on CI runners (`GITHUB_ACTIONS=true`); added a `strip_ansi()` test helper.
+
+### Changed
+- README installation section now documents GitHub Releases as the distribution channel (the package is not published on PyPI): `pip install git+...` and `uv tool install --from git+...`; removed the stale `pipx install torbox-cli` instructions and the duplicate "Install from Source" section.
+
 ## [1.3.0] - 2026-08-24
 
 ### Added
