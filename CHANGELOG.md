@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-08-24
+
 ### Added
 - `release.yml` gains an optional PyPI publish job using **trusted publishing** (OIDC, no stored tokens). It is gated behind the `PUBLISH_PYPI` repo variable (set it to `true` after configuring the publisher on PyPI) and publishes the exact `dist/` artifacts uploaded by the GitHub Release job.
 
