@@ -292,6 +292,49 @@ class TestUsenetCheckcached:
         )
         assert result.exit_code == 0
 
+    def test_checkcached_get_uses_query_params(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/usenet/checkcached?hash=hash1%2Chash2",
+            json={"success": True, "data": {}},
+        )
+        result = runner.invoke(
+            app,
+            ["usenet", "checkcached", "hash1", "hash2", "--get", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "GET"
+        assert "hash=hash1%2Chash2" in str(req.url)
+
+    def test_checkcached_get_with_format_and_list_files(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=(
+                f"{DEFAULT_BASE_URL}/usenet/checkcached"
+                "?hash=hash1&format=object&list_files=1"
+            ),
+            json={"success": True, "data": {}},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "usenet",
+                "checkcached",
+                "hash1",
+                "--get",
+                "--format",
+                "object",
+                "--list-files",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "GET"
+        assert "format=object" in str(req.url)
+        assert "list_files=1" in str(req.url)
+
 
 class TestWebdlCheckcached:
     def test_checkcached_basic(self, httpx_mock: Any) -> None:
