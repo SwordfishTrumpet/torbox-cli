@@ -884,6 +884,148 @@ class TestTorrentsExportData:
         assert "must be one of: magnet, file" in result.output
 
 
+class TestIntegrationsOauth:
+    def test_oauth_list(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/me",
+            json={"success": True, "data": {"googledrive": True}},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "oauth", "list", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["success"] is True
+
+    def test_oauth_info(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/googledrive",
+            json={"success": True, "data": {"status": "linked"}},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "oauth", "info", "googledrive", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["data"]["data"]["status"] == "linked"
+
+    def test_oauth_register(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/googledrive/register",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "integrations",
+                "oauth",
+                "register",
+                "googledrive",
+                "--token",
+                "gtoken",
+                "--refresh-token",
+                "grefresh",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        body = json.loads(req.content)
+        assert body["token"] == "gtoken"
+        assert body["refresh_token"] == "grefresh"
+
+    def test_oauth_callback(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/googledrive/callback",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "oauth", "callback", "googledrive", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "GET"
+
+    def test_oauth_success(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/googledrive/success",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            ["integrations", "oauth", "success", "googledrive", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        assert httpx_mock.get_requests()[0].method == "GET"
+
+    def test_oauth_unregister(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/googledrive/unregister",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "integrations",
+                "oauth",
+                "unregister",
+                "googledrive",
+                "--yes",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "DELETE"
+
+    def test_oauth_discord_linked_roles(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/integration/oauth/discord/linked_roles",
+            json={"success": True, "data": None},
+        )
+        result = runner.invoke(
+            app,
+            [
+                "integrations",
+                "oauth",
+                "discord-linked-roles",
+                "--discord-token",
+                "dtoken",
+                "--json",
+            ],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "POST"
+        body = json.loads(req.content)
+        assert body["discord_token"] == "dtoken"
+
+    def test_oauth_help(self) -> None:
+        result = runner.invoke(app, ["integrations", "oauth", "--help"])
+        assert result.exit_code == 0
+        for cmd in (
+            "list",
+            "info",
+            "register",
+            "callback",
+            "success",
+            "unregister",
+            "discord-linked-roles",
+        ):
+            assert cmd in result.output
+
+
 class TestIntegrationsUpload:
     def test_upload_googledrive(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(

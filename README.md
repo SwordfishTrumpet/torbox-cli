@@ -151,7 +151,7 @@ torbox --install-completion fish          # fish
 | `stream` | create, data |
 | `notifications` | list, rss, test, clear |
 | `monitor` | htop-style live TUI dashboard (torrents, usenet, webdl, queued) |
-| `integrations` | jobs, cancel |
+| `integrations` | jobs, cancel, upload, list-jobs, oauth (list/info/register/callback/success/unregister/discord-linked-roles) |
 
 Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
 
@@ -308,6 +308,10 @@ torbox stream data <token>
 # Cloud upload jobs (integrations)
 torbox integrations jobs <job-id>
 torbox integrations cancel <job-id> --yes
+
+# Integration OAuth lifecycle
+torbox integrations oauth list
+torbox integrations oauth register googledrive --token gtoken
 ```
 
 ### Cron-Safe Automation
