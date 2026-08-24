@@ -73,6 +73,32 @@ def stats(
 
 @app.command(
     help=(
+        "GET /stats/30days — 30-day service statistics\n\n"
+        "Example: torbox general stats-30days --json"
+    )
+)
+@handle_errors
+def stats_30days(
+    ctx: Context,
+    json: bool = typer.Option(False, "--json", "-j", help="Emit raw JSON"),
+    field: str | None = typer.Option(
+        None, "--field", "-f", help="Extract dot-path field"
+    ),
+    auto_retry: bool = typer.Option(
+        False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
+    ),
+) -> None:
+    _set_auto_retry(ctx, auto_retry)
+    client = _get_client(ctx)
+    data: dict[str, Any] = client.public_get("/stats/30days")
+    print_json_envelope(ctx, data, "general stats-30days", local_json=json, field=field)
+    if _should_json(ctx, json) or _get_field(ctx, field):
+        return
+    print_panel(str(data), "Stats (30 Days)")
+
+
+@app.command(
+    help=(
         "GET /changelogs/json — Recent changelogs\n\nExample: torbox general changelogs"
     )
 )
