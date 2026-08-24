@@ -1116,6 +1116,21 @@ class TestSpeedtestParams:
         assert "test_length" not in str(req.url)
 
 
+class TestGeneralStats30Days:
+    def test_stats_30days(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/stats/30days",
+            json={"success": True, "data": {"total_downloads": 12345}},
+        )
+        result = runner.invoke(app, ["general", "stats-30days", "--json"])
+        assert result.exit_code == 0
+        req = httpx_mock.get_requests()[0]
+        assert req.method == "GET"
+        assert "Authorization" not in req.headers
+        out = json.loads(result.output)
+        assert out["data"]["data"]["total_downloads"] == 12345
+
+
 class TestGeneralPing:
     def test_ping(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(

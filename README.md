@@ -141,7 +141,7 @@ torbox --install-completion fish          # fish
 
 | Group | Commands |
 |-------|----------|
-| `general` | status, stats, changelogs, speedtest |
+| `general` | status, stats, stats-30days, changelogs, speedtest |
 | `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, exportdata, async-create, edit |
 | `usenet` | list, create, async-create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
