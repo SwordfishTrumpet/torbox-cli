@@ -1017,6 +1017,22 @@ class TestIntegrationsUpload:
         assert "list-jobs" in result.output
 
 
+class TestUserSubscriptions:
+    def test_subscriptions(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/subscriptions",
+            json={"success": True, "data": [{"plan": "pro", "expires_at": None}]},
+        )
+        result = runner.invoke(
+            app,
+            ["user", "subscriptions", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["data"]["data"][0]["plan"] == "pro"
+
+
 class TestUserStats:
     def test_stats(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
