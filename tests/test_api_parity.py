@@ -1017,6 +1017,25 @@ class TestIntegrationsUpload:
         assert "list-jobs" in result.output
 
 
+class TestUserReferralData:
+    def test_referral_data(self, httpx_mock: Any) -> None:
+        httpx_mock.add_response(
+            url=f"{DEFAULT_BASE_URL}/user/referraldata",
+            json={
+                "success": True,
+                "data": {"referred_accounts": 3, "purchases": 5},
+            },
+        )
+        result = runner.invoke(
+            app,
+            ["user", "referral-data", "--json"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code == 0
+        out = json.loads(result.output)
+        assert out["data"]["data"]["referred_accounts"] == 3
+
+
 class TestUserRefreshToken:
     def test_refresh_token(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(

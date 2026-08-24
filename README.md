@@ -145,7 +145,7 @@ torbox --install-completion fish          # fish
 | `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, exportdata, async-create, edit |
 | `usenet` | list, create, async-create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
-| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation |
+| `user` | me, transactions, transaction-pdf, settings, searchengines, auth-device-start, auth-device-token, confirmation, referral-data |
 | `rss` | list, items, create, edit, delete |
 | `queued` | list, control |
 | `stream` | create, data |
