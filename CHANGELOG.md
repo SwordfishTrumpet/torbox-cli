@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `torbox/models.py` (Pydantic request/response models) deleted — the runtime serializes raw dicts end-to-end and never used the models layer; removed the unused `pydantic` runtime dependency. `tests/test_models.py` renamed to `tests/test_field_config.py` (field extraction + profile config tests retained) and the model tests dropped (closes #29).
+
 ### Changed
 - Bumped GitHub Actions to current majors (`setup-python@v7`, `upload-artifact@v7`, `download-artifact@v8`), removing the Node 20 deprecation warnings.
 

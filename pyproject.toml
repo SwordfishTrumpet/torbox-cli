@@ -13,7 +13,6 @@ keywords = ["torbox", "cli", "torrent", "usenet", "api", "debrid"]
 dependencies = [
     "typer>=0.25.1",
     "httpx>=0.28.1",
-    "pydantic>=2.13.4",
     "rich>=15.0.0",
     "python-dotenv>=1.2.2",
     "click>=8.0.0",

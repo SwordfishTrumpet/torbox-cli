@@ -51,7 +51,6 @@ The CLI follows a layered design:
 |---|---|---|
 | **CLI** | Command definitions, argument parsing, input validation | [typer](https://typer.tiangolo.com/) 0.25+, [click](https://click.palletsprojects.com/) 8.0+ |
 | **Client** | HTTP transport, authentication, retry logic, rate-limit handling | [httpx](https://www.python-httpx.org/) 0.28+ |
-| **Models** | Request/response schema validation | [pydantic](https://docs.pydantic.dev/) 2.13+ |
 | **Formatters** | Human-readable (rich) and machine-readable (JSON) output | [rich](https://rich.readthedocs.io/) 15.0+ |
 | **Config** | Hierarchical config loading with multi-profile support | [python-dotenv](https://github.com/theskumar/python-dotenv) 1.2+ |
 
@@ -484,19 +483,17 @@ torbox config doctor --json   # machine-readable output
    pre-commit install
    ```
 
-3. Add the Pydantic model to `torbox/models.py`.
+3. Add the CLI command to `torbox/commands/*.py` with real-world `help=` text.
 
-4. Add the CLI command to `torbox/commands/*.py` with real-world `help=` text.
+4. Add tests in `tests/test_<group>.py`.
 
-5. Add tests in `tests/test_<group>.py`.
-
-6. Run the linter and type checker:
+5. Run the linter and type checker:
    ```bash
    uv run ruff check torbox/ tests/
    uv run mypy --strict torbox/
    ```
 
-7. Run the test suite (coverage threshold: 65%):
+6. Run the test suite (coverage threshold: 65%):
    ```bash
    uv run pytest tests/
    ```
