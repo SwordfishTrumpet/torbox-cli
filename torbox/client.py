@@ -29,6 +29,10 @@ class TorBoxClient:
     }
     _DEFAULT_RATE_LIMIT = 300
     _DEFAULT_RATE_WINDOW = 60
+    # Defense in depth: never keep more than this many timestamps per
+    # endpoint even if a client runs for weeks (e.g. the monitor TUI polls
+    # several endpoints once per second).
+    _MAX_REQUEST_LOG_ENTRIES = 1000
 
     def __init__(
         self,
@@ -315,9 +319,31 @@ class TorBoxClient:
                 file=sys.stderr,
             )
 
+    def _request_window(self, endpoint: str) -> int:
+        """Return the largest rate window configured for an endpoint.
+
+        Used to trim ``_request_log`` without dropping timestamps that
+        ``_check_rate_limit_warning`` (which uses the method-specific
+        window) may still need.
+        """
+        windows = [
+            window
+            for (ep, _method), (_limit, window) in self._RATE_LIMITS.items()
+            if ep == endpoint
+        ]
+        return max(windows, default=self._DEFAULT_RATE_WINDOW)
+
     def _record_request(self, endpoint: str) -> None:
         now = time.time()
-        self._request_log.setdefault(endpoint, []).append(now)
+        log = self._request_log.setdefault(endpoint, [])
+        log.append(now)
+        # Trim unconditionally so the log stays a sliding window even when
+        # --verbose is off; otherwise long-lived processes (monitor TUI,
+        # automation) grow the list without bound.
+        window = self._request_window(endpoint)
+        trimmed = [t for t in log if now - t < window]
+        del trimmed[:-self._MAX_REQUEST_LOG_ENTRIES]
+        self._request_log[endpoint] = trimmed
 
     def close(self) -> None:
         self.client.close()

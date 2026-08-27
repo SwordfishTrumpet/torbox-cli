@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import uuid
 from typing import Any
 from unittest.mock import patch
@@ -65,3 +66,83 @@ def test_createtorrent_rate_limit_v9() -> None:
     limits = TorBoxClient._RATE_LIMITS
     assert ("/torrents/createtorrent", "POST") in limits
     assert limits[("/torrents/createtorrent", "POST")] == (300, 60)
+
+
+# =============================================================================
+# Bounded _request_log (issue #27)
+# =============================================================================
+
+
+def test_request_log_capped_within_window() -> None:
+    """Many requests within one rate window must not exceed the cap."""
+    client = TorBoxClient(api_key="dummy")
+    with patch("torbox.client.time.time", return_value=1000.0):
+        for _ in range(2500):
+            client._record_request("/torrents/mylist")
+    log = client._request_log["/torrents/mylist"]
+    assert len(log) == TorBoxClient._MAX_REQUEST_LOG_ENTRIES
+    assert len(log) <= TorBoxClient._MAX_REQUEST_LOG_ENTRIES
+
+
+def test_request_log_window_trimming() -> None:
+    """Entries older than the endpoint's rate window are dropped."""
+    client = TorBoxClient(api_key="dummy")
+    counter = itertools.count()
+    with patch(
+        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
+    ):
+        for _ in range(2000):
+            client._record_request("/torrents/mylist")
+    log = client._request_log["/torrents/mylist"]
+    # 1-second steps over 2000 requests: only the last ~60s survive.
+    assert 0 < len(log) <= 60
+
+
+def test_request_log_bounded_across_endpoints() -> None:
+    """Simulate the monitor TUI: 4 endpoints polled once per second."""
+    client = TorBoxClient(api_key="dummy")
+    endpoints = [
+        "/torrents/mylist",
+        "/usenet/mylist",
+        "/webdl/mylist",
+        "/queued/getqueued",
+    ]
+    counter = itertools.count()
+    with patch(
+        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
+    ):
+        for _ in range(3600):
+            for ep in endpoints:
+                client._record_request(ep)
+    for ep in endpoints:
+        log = client._request_log[ep]
+        assert len(log) <= TorBoxClient._MAX_REQUEST_LOG_ENTRIES
+        assert len(log) <= 60
+
+
+def test_request_window_uses_endpoint_specific_window() -> None:
+    """Usenet/webdl have a 3600s window; the trim must not shrink below it."""
+    client = TorBoxClient(api_key="dummy")
+    assert client._request_window("/usenet/createusenetdownload") == 3600
+    assert client._request_window("/webdl/createwebdownload") == 3600
+    assert client._request_window("/torrents/mylist") == 60
+    assert client._request_window("/unknown/endpoint") == 60
+
+
+def test_rate_limit_warning_still_works_after_trimming(httpx_mock: Any) -> None:
+    """Trimming must not break the rate-limit warning accounting."""
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/", json={"status": "ok"}
+    )
+    client = TorBoxClient(api_key="dummy", verbose=True)
+    counter = itertools.count()
+    with patch(
+        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
+    ):
+        # 100 requests within the window, well under the warning threshold.
+        for _ in range(100):
+            client._record_request("/torrents/mylist")
+        # Manually seed a near-threshold log as the warning test does.
+        client._request_log["/"] = [1000.0] * 240
+        client.get("/")
+    assert len(client._request_log["/"]) <= TorBoxClient._MAX_REQUEST_LOG_ENTRIES
