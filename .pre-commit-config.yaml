@@ -1,17 +1,21 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.0
+    rev: v0.15.18
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+  # mypy runs from the project venv (uv.lock-pinned) as a local system hook so
+  # pre-commit and CI resolve identical versions and dependencies by construction.
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies: [types-python-dateutil]
-        args: [--strict, torbox]
+        name: mypy
+        entry: mypy --strict torbox
+        language: system
+        pass_filenames: false
+        types: [python]
 
   - repo: local
     hooks:

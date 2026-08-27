@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `uv.lock` is now committed and CI installs via `uv sync --frozen` (plus a `uv lock --check` drift guard), making dev builds reproducible. Dev tooling consolidated into `[dependency-groups] dev` (the `dev` optional-dependencies extra was removed); release workflow now attaches a `requirements.lock.txt` pin list (`uv export --frozen`) to each GitHub Release so resolved versions are recorded (closes #30).
+- `.pre-commit-config.yaml` hooks bumped to the locked tool versions (`ruff-pre-commit` v0.15.18, `mirrors-mypy` v2.1.0) so local pre-commit and CI enforce identical rules; tree reformatted with the new formatter (closes #31).
 - Bumped GitHub Actions to current majors (`setup-python@v7`, `upload-artifact@v7`, `download-artifact@v8`), removing the Node 20 deprecation warnings.
 
 ## [1.3.1] - 2026-08-24

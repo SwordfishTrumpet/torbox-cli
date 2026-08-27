@@ -157,10 +157,7 @@ def upload(
     ctx: Context,
     provider: str = typer.Argument(
         ...,
-        help=(
-            "Provider: googledrive, pixeldrain, onedrive, gofile, "
-            "1fichier, dropbox"
-        ),
+        help=("Provider: googledrive, pixeldrain, onedrive, gofile, 1fichier, dropbox"),
     ),
     file_id: int = typer.Argument(..., help="File ID to upload"),
     zip_link: str | None = typer.Option(None, "--zip-link", help="Zip link URL"),

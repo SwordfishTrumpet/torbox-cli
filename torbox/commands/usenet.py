@@ -361,7 +361,9 @@ def edit(
         None, "--alternative-hashes", help="Comma-separated alternative hashes"
     ),
     airlocked: bool | None = typer.Option(
-        None, "--airlocked", help="Keep file in permanent storage (Airlock)",
+        None,
+        "--airlocked",
+        help="Keep file in permanent storage (Airlock)",
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(

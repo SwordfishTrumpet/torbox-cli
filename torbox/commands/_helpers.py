@@ -216,9 +216,7 @@ def _print_error_json(exc: Any) -> None:
     print_error_json(exc)
 
 
-def _command_context(
-    args: tuple[Any, ...], kwargs: dict[str, Any]
-) -> Context | None:
+def _command_context(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Context | None:
     """Return the typer Context passed to a wrapped command, if any.
 
     typer injects the context as a keyword argument at runtime

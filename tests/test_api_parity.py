@@ -824,10 +824,7 @@ class TestTorrentsTorrentInfo:
 class TestTorrentsExportData:
     def test_exportdata_magnet_json(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
-            url=(
-                f"{DEFAULT_BASE_URL}/torrents/exportdata"
-                "?torrent_id=42&type=magnet"
-            ),
+            url=(f"{DEFAULT_BASE_URL}/torrents/exportdata?torrent_id=42&type=magnet"),
             json={
                 "success": True,
                 "data": "magnet:?xt=urn:btih:abc123",
@@ -846,14 +843,9 @@ class TestTorrentsExportData:
         out = json.loads(result.output)
         assert out["data"]["data"] == "magnet:?xt=urn:btih:abc123"
 
-    def test_exportdata_file_writes_bytes(
-        self, httpx_mock: Any, tmp_path: Any
-    ) -> None:
+    def test_exportdata_file_writes_bytes(self, httpx_mock: Any, tmp_path: Any) -> None:
         httpx_mock.add_response(
-            url=(
-                f"{DEFAULT_BASE_URL}/torrents/exportdata"
-                "?torrent_id=42&type=file"
-            ),
+            url=(f"{DEFAULT_BASE_URL}/torrents/exportdata?torrent_id=42&type=file"),
             content=b"\x00torrent-data",
             headers={"content-type": "application/x-bittorrent"},
         )

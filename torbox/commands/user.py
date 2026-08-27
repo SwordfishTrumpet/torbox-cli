@@ -275,7 +275,7 @@ def subscriptions(
 @app.command(
     help=(
         "DELETE /user/deleteme — Permanently delete your TorBox account\n\n"
-        "Requires the confirmation code from `user confirmation` plus a \"yes\" "
+        'Requires the confirmation code from `user confirmation` plus a "yes" '
         "confirmation (or --yes). This cannot be undone.\n"
         "Example: torbox user delete --confirmation-code 123456 --yes"
     )
@@ -304,15 +304,17 @@ def delete(
     payload: dict[str, Any] = {"confirmation_code": confirmation_code}
     if session_token:
         payload["session_token"] = session_token
-    if dry_run_guard(
-        ctx, "DELETE /user/deleteme", payload=payload, dry_run=dry_run
-    ):
+    if dry_run_guard(ctx, "DELETE /user/deleteme", payload=payload, dry_run=dry_run):
         return
     if not yes:
-        answer = input(
-            "This will PERMANENTLY DELETE your TorBox account and all data. "
-            "Type 'yes' to continue: "
-        ).strip().lower()
+        answer = (
+            input(
+                "This will PERMANENTLY DELETE your TorBox account and all data. "
+                "Type 'yes' to continue: "
+            )
+            .strip()
+            .lower()
+        )
         if answer != "yes":
             raise typer.Exit(code=0)
     client = _get_client(ctx)

@@ -25,6 +25,7 @@ def strip_ansi(text: str) -> str:
     """Remove ANSI color/format escape sequences from CLI output."""
     return _ANSI_RE.sub("", text)
 
+
 _real_connect = socket.socket.connect
 _attempts: list[str] = []
 

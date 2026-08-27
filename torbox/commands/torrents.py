@@ -90,8 +90,13 @@ def list_torrents(
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
             cols = [
-                "id", "name", "size", "status",
-                "progress", "download_speed", "cached",
+                "id",
+                "name",
+                "size",
+                "status",
+                "progress",
+                "download_speed",
+                "cached",
             ]
             print_table(data["data"], "Torrents", columns=cols)
     elif not _is_quiet(ctx):
@@ -157,9 +162,17 @@ def files(
     file_list = item.get("files")
     if isinstance(file_list, list) and file_list:
         if not _is_quiet(ctx):
-            print_table(file_list, f"Torrent {id} Files", columns=[
-                    "id", "short_name", "size", "mimetype", "infected",
-                ])
+            print_table(
+                file_list,
+                f"Torrent {id} Files",
+                columns=[
+                    "id",
+                    "short_name",
+                    "size",
+                    "mimetype",
+                    "infected",
+                ],
+            )
     else:
         if not _is_quiet(ctx):
             print_panel("No files listed for this torrent.", f"Torrent {id}")
@@ -439,9 +452,7 @@ def export(
 def exportdata(
     ctx: Context,
     id: int,
-    type: str = typer.Option(
-        "magnet", "--type", help="Export type: magnet | file"
-    ),
+    type: str = typer.Option("magnet", "--type", help="Export type: magnet | file"),
     output: str | None = typer.Option(
         None,
         "--output",
@@ -490,9 +501,7 @@ def exportdata(
         if output:
             Path(output).write_bytes(raw)
             if not _is_quiet(ctx):
-                print_panel(
-                    f"Saved {len(raw)} bytes to {output}", f"Export {id}"
-                )
+                print_panel(f"Saved {len(raw)} bytes to {output}", f"Export {id}")
         else:
             sys.stdout.buffer.write(raw)
         return
@@ -608,7 +617,9 @@ def edit(
         help="Comma-separated alternative hashes",
     ),
     airlocked: bool | None = typer.Option(
-        None, "--airlocked", help="Keep file in permanent storage (Airlock)",
+        None,
+        "--airlocked",
+        help="Keep file in permanent storage (Airlock)",
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
@@ -658,16 +669,10 @@ def edit(
 @handle_errors
 def torrentinfo(
     ctx: Context,
-    hash: str | None = typer.Argument(
-        None, help="Infohash to look up"
-    ),
-    magnet: str | None = typer.Option(
-        None, "--magnet", help="Magnet link (uses POST)"
-    ),
+    hash: str | None = typer.Argument(None, help="Infohash to look up"),
+    magnet: str | None = typer.Option(None, "--magnet", help="Magnet link (uses POST)"),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be sent"
-    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be sent"),
     auto_retry: bool = typer.Option(
         False, "--auto-retry", help="Auto-retry on 429 rate limits with backoff"
     ),
@@ -694,6 +699,7 @@ def torrentinfo(
         return
     if not _is_quiet(ctx):
         from torbox.formatters import print_dict_panel
+
         item = data.get("data") if isinstance(data, dict) else data
         if isinstance(item, dict):
             print_dict_panel(item, "Torrent Info")
