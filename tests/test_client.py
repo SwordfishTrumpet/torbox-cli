@@ -88,9 +88,7 @@ def test_request_log_window_trimming() -> None:
     """Entries older than the endpoint's rate window are dropped."""
     client = TorBoxClient(api_key="dummy")
     counter = itertools.count()
-    with patch(
-        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
-    ):
+    with patch("torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)):
         for _ in range(2000):
             client._record_request("/torrents/mylist")
     log = client._request_log["/torrents/mylist"]
@@ -108,9 +106,7 @@ def test_request_log_bounded_across_endpoints() -> None:
         "/queued/getqueued",
     ]
     counter = itertools.count()
-    with patch(
-        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
-    ):
+    with patch("torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)):
         for _ in range(3600):
             for ep in endpoints:
                 client._record_request(ep)
@@ -131,14 +127,10 @@ def test_request_window_uses_endpoint_specific_window() -> None:
 
 def test_rate_limit_warning_still_works_after_trimming(httpx_mock: Any) -> None:
     """Trimming must not break the rate-limit warning accounting."""
-    httpx_mock.add_response(
-        url="https://api.torbox.app/v1/api/", json={"status": "ok"}
-    )
+    httpx_mock.add_response(url="https://api.torbox.app/v1/api/", json={"status": "ok"})
     client = TorBoxClient(api_key="dummy", verbose=True)
     counter = itertools.count()
-    with patch(
-        "torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)
-    ):
+    with patch("torbox.client.time.time", side_effect=lambda: 1000.0 + next(counter)):
         # 100 requests within the window, well under the warning threshold.
         for _ in range(100):
             client._record_request("/torrents/mylist")

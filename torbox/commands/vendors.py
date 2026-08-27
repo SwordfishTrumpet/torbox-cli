@@ -164,9 +164,7 @@ def register(
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str] = {"vendor_name": vendor_name, "vendor_url": vendor_url}
-    if dry_run_guard(
-        ctx, "POST /vendors/register", payload=payload, dry_run=dry_run
-    ):
+    if dry_run_guard(ctx, "POST /vendors/register", payload=payload, dry_run=dry_run):
         return
     client = _get_client(ctx)
     data: dict[str, Any] = client.post("/vendors/register", json=payload)

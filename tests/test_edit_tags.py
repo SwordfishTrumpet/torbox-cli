@@ -50,9 +50,7 @@ def test_torrents_edit_tags_as_array(httpx_mock: Any) -> None:
 
 
 def test_torrents_edit_alternative_hashes_as_array(httpx_mock: Any) -> None:
-    body = _run(
-        "torrents", ["--alternative-hashes", "hash1,hash2,hash3"], httpx_mock
-    )
+    body = _run("torrents", ["--alternative-hashes", "hash1,hash2,hash3"], httpx_mock)
     assert body["alternative_hashes"] == ["hash1", "hash2", "hash3"]
 
 

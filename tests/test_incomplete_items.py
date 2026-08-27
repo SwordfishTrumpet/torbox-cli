@@ -70,9 +70,7 @@ class TestHostersOptionalAuth:
 class TestNotificationsCommands:
     """Notifications commands are fully implemented with real API calls."""
 
-    def test_notifications_list_human(
-        self, monkeypatch: Any, httpx_mock: Any
-    ) -> None:
+    def test_notifications_list_human(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/notifications/mynotifications",
@@ -81,9 +79,7 @@ class TestNotificationsCommands:
         result = runner.invoke(app, ["notifications", "list"])
         assert result.exit_code == 0
 
-    def test_notifications_list_json(
-        self, monkeypatch: Any, httpx_mock: Any
-    ) -> None:
+    def test_notifications_list_json(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/notifications/mynotifications",
@@ -96,9 +92,7 @@ class TestNotificationsCommands:
         out = _json.loads(result.output)
         assert out["success"] is True
 
-    def test_notifications_rss_human(
-        self, monkeypatch: Any, httpx_mock: Any
-    ) -> None:
+    def test_notifications_rss_human(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/notifications/rss?token=tb-test-key",
@@ -117,9 +111,7 @@ class TestNotificationsCommands:
 class TestIntegrationsCommands:
     """Integrations commands (jobs, cancel) are fully implemented."""
 
-    def test_integrations_jobs_human(
-        self, monkeypatch: Any, httpx_mock: Any
-    ) -> None:
+    def test_integrations_jobs_human(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/integration/jobs/abc123",
@@ -128,9 +120,7 @@ class TestIntegrationsCommands:
         result = runner.invoke(app, ["integrations", "jobs", "abc123"])
         assert result.exit_code == 0
 
-    def test_integrations_jobs_json(
-        self, monkeypatch: Any, httpx_mock: Any
-    ) -> None:
+    def test_integrations_jobs_json(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setenv("TORBOX_API_KEY", "tb-test-key")
         httpx_mock.add_response(
             url=f"{DEFAULT_BASE_URL}/integration/jobs/abc123",
@@ -208,6 +198,7 @@ class TestRequestDurationMs:
             result = runner.invoke(app, ["torrents", "list", "--json"])
             assert result.exit_code == 0
             import json as _json
+
             parsed = _json.loads(result.output)
             assert "meta" in parsed
             assert "request_duration_ms" in parsed["meta"]
@@ -278,8 +269,13 @@ class TestTorrentsListTableColumns:
                 args, kwargs = mock_print_table.call_args
                 assert "columns" in kwargs
                 expected_cols = [
-                    "id", "name", "size", "status",
-                    "progress", "download_speed", "cached",
+                    "id",
+                    "name",
+                    "size",
+                    "status",
+                    "progress",
+                    "download_speed",
+                    "cached",
                 ]
                 assert kwargs["columns"] == expected_cols
 

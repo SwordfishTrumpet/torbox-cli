@@ -172,10 +172,7 @@ def speedtest(
 
 
 @app.command(
-    help=(
-        "GET / — API health check (root endpoint)\n\n"
-        "Example: torbox general ping"
-    )
+    help=("GET / — API health check (root endpoint)\n\nExample: torbox general ping")
 )
 @handle_errors
 def ping(

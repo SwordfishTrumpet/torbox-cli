@@ -342,7 +342,7 @@ class TorBoxClient:
         # automation) grow the list without bound.
         window = self._request_window(endpoint)
         trimmed = [t for t in log if now - t < window]
-        del trimmed[:-self._MAX_REQUEST_LOG_ENTRIES]
+        del trimmed[: -self._MAX_REQUEST_LOG_ENTRIES]
         self._request_log[endpoint] = trimmed
 
     def close(self) -> None:
