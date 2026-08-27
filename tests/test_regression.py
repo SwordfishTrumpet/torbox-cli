@@ -279,13 +279,17 @@ def test_manpage_output_structure() -> None:
     output = result.output
     assert ".TH TORBOX 1" in output
     assert ".SH NAME" in output
-    assert output.count(".SH ") >= 1
+    assert ".SH COMMANDS" in output
+    assert ".SH EXIT STATUS" in output
+    assert output.count(".SH ") >= 5
+    # Real content: command groups and options are present, not a stub.
+    assert ".SS torrents" in output
+    assert ".B \\-\\-json" in output
+    assert "not found" in output
 
 
-def test_general_docs_man_backward_compat() -> None:
+def test_general_docs_removed_after_dedup() -> None:
+    """The duplicate 'general docs' stub was removed in favor of the root command."""
     result = runner.invoke(app, ["general", "docs", "--man"])
-    assert result.exit_code == 0
-    output = result.output
-    assert ".TH TORBOX 1" in output
-    assert ".SH NAME" in output
-    assert output.count(".SH ") >= 1
+    assert result.exit_code != 0
+    assert "No such command" in result.output

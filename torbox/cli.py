@@ -29,6 +29,7 @@ from torbox.commands import (
 )
 from torbox.exceptions import TorBoxError
 from torbox.formatters import print_error_json, print_human_error
+from torbox.man_page import generate_man_page
 
 app = typer.Typer(
     help=(
@@ -118,9 +119,7 @@ def docs(
 ) -> None:
     """Generate documentation. Use --man for troff output."""
     if man:
-        print(".TH TORBOX 1")
-        print(".SH NAME")
-        print("torbox \\- TorBox CLI")
+        print(generate_man_page(app), end="")
     else:
         print("Use --man for man page output")
 

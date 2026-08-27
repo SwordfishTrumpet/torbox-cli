@@ -20,10 +20,18 @@ def test_general_status(httpx_mock: Any) -> None:
     assert "status" in result.output
 
 
-def test_general_docs_man() -> None:
+def test_general_docs_removed_after_dedup() -> None:
+    """The duplicate 'general docs' stub is gone; root owns man pages."""
     result = runner.invoke(app, ["general", "docs", "--man"])
+    assert result.exit_code != 0
+    assert "No such command" in result.output
+
+
+def test_root_docs_man_generates_real_man_page() -> None:
+    result = runner.invoke(app, ["docs", "--man"])
     assert result.exit_code == 0
-    assert ".TH TORBOX" in result.output
+    assert ".TH TORBOX 1" in result.output
+    assert ".SH COMMANDS" in result.output
 
 
 def test_queued_list(httpx_mock: Any) -> None:
