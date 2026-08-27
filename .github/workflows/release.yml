@@ -16,24 +16,23 @@ jobs:
         with:
           fetch-depth: 0  # Needed for hatch-vcs to read tags
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build
 
       - name: Build wheel and sdist
-        run: python -m build
+        run: uv build
+
+      - name: Export pinned dependency requirements from lockfile
+        run: uv export --frozen -o requirements.lock.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/*
+          files: |
+            dist/*
+            requirements.lock.txt
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

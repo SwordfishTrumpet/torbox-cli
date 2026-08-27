@@ -25,9 +25,6 @@ docs/superpowers/
 .github/release_template.md
 docs/RELEASE_SIGNING.md
 
-# Package manager lock files (users resolve from pyproject.toml)
-uv.lock
-
 # Secrets
 *.key
 *.pem

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `torbox/models.py` (Pydantic request/response models) deleted — the runtime serializes raw dicts end-to-end and never used the models layer; removed the unused `pydantic` runtime dependency. `tests/test_models.py` renamed to `tests/test_field_config.py` (field extraction + profile config tests retained) and the model tests dropped (closes #29).
 
 ### Changed
+- `uv.lock` is now committed and CI installs via `uv sync --frozen` (plus a `uv lock --check` drift guard), making dev builds reproducible. Dev tooling consolidated into `[dependency-groups] dev` (the `dev` optional-dependencies extra was removed); release workflow now attaches a `requirements.lock.txt` pin list (`uv export --frozen`) to each GitHub Release so resolved versions are recorded (closes #30).
 - Bumped GitHub Actions to current majors (`setup-python@v7`, `upload-artifact@v7`, `download-artifact@v8`), removing the Node 20 deprecation warnings.
 
 ## [1.3.1] - 2026-08-24
