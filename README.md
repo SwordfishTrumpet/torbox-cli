@@ -5,7 +5,7 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)](https://github.com/astral-sh/ruff)
 [![Typed: mypy](https://img.shields.io/badge/typed-mypy%20--strict-0395DE.svg)](https://mypy-lang.org/)
 [![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC.svg)](https://docs.pytest.org/)
-[![Coverage](https://img.shields.io/badge/coverage-%3E%3E%2065%25-yellow.svg)](pyproject.toml)
+[![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen.svg)](pyproject.toml)
 
 A full-featured Python CLI wrapper for the [TorBox API v1](https://torbox.app) — manage torrents, usenet downloads, web downloads, RSS feeds, and more, directly from your terminal.
 
@@ -21,7 +21,7 @@ You already use the TorBox web UI to manage downloads. But every time you want t
 
 ### Core Features
 
-- **Full TorBox v1 API coverage** — torrents, usenet, web downloads, RSS, queued downloads, streaming, notifications, integrations, and user account management
+- **Full TorBox v1 API coverage** — torrents, usenet, web downloads, RSS, queued downloads, streaming, notifications, integrations, vendors (partner accounts), NNTP news server credentials, and user account management
 - **Dual output modes** — rich, human-readable tables and panels for interactive use; structured JSON envelopes for `jq`, `xargs`, and LLM agents
 - **Dot-path field extraction** (`--field`) — pluck nested fields from API responses without writing custom parsers
 - **Compact JSON mode** (`--compact`) — single-line JSON for streaming through line-oriented tools like GNU parallel
@@ -56,7 +56,6 @@ The CLI follows a layered design:
 | **Config** | Hierarchical config loading with multi-profile support | [python-dotenv](https://github.com/theskumar/python-dotenv) 1.2+ |
 
 **Runtime requirements:** Python 3.10+
-**Optional:** `guessit` (bundled) for rich torrent filename parsing
 
 ---
 
@@ -114,7 +113,15 @@ chmod 600 .env
 torbox torrents list
 ```
 
-**4. XDG config file** at `~/.config/torbox-cli/config.env`:
+**4. Custom config file** via the global `--config` flag (loaded after the cwd `.env`, before the XDG file):
+
+```bash
+echo "TORBOX_API_KEY=tb-your-key" > /path/to/custom.env
+chmod 600 /path/to/custom.env
+torbox --config /path/to/custom.env torrents list
+```
+
+**5. XDG config file** at `~/.config/torbox-cli/config.env`:
 
 ```bash
 mkdir -p ~/.config/torbox-cli
@@ -122,9 +129,9 @@ echo "TORBOX_API_KEY=tb-your-key" > ~/.config/torbox-cli/config.env
 chmod 600 ~/.config/torbox-cli/config.env
 ```
 
-**5. Legacy config** at `~/.torbox-cli.env`.
+**6. Legacy config** at `~/.torbox-cli.env`.
 
-**6. INI-style profiles** (lowest priority, see [profiles](#profiles-multiple-accounts) below).
+**7. INI-style profiles** (lowest priority, see [profiles](#profiles-multiple-accounts) below).
 
 > **Tip:** Run `torbox config doctor` at any time to inspect which auth source is active.
 
@@ -144,18 +151,20 @@ torbox --install-completion fish          # fish
 
 | Group | Commands |
 |-------|----------|
-| `general` | status, stats, stats-30days, changelogs, speedtest |
+| `config` | doctor |
+| `general` | status, stats, stats-30days, changelogs, speedtest, docs, ping |
 | `vendors` | account, accounts, account-info, refresh, register, register-user, remove-user, update-account |
-| `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, exportdata, async-create, edit |
+| `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, exportdata, async-create, edit, torrentinfo |
 | `usenet` | list, create, async-create, control, requestdl, export, edit, checkcached |
 | `webdl` | list, create, async-create, control, edit, requestdl, checkcached, hosters |
-| `user` | me, transactions, transaction-pdf, settings, searchengines, stats, subscriptions, auth-device-start, auth-device-token, confirmation, delete, referral-data |
+| `user` | me, transactions, transaction-pdf, settings, searchengines, stats, subscriptions, auth-device-start, auth-device-token, confirmation, delete, referral-data, refresh-token, add-referral |
 | `rss` | list, items, create, edit, delete |
 | `queued` | list, control |
 | `stream` | create, data |
-| `notifications` | list, rss, test, clear |
+| `notifications` | list, rss, test, clear, clear-one |
 | `monitor` | htop-style live TUI dashboard (torrents, usenet, webdl, queued) |
-| `integrations` | jobs, cancel, upload, list-jobs, oauth (list/info/register/callback/success/unregister/discord-linked-roles) |
+| `nntp` | credentials, reset-password |
+| `integrations` | info, jobs, cancel, upload, list-jobs, oauth (list/info/register/callback/success/unregister/discord-linked-roles) |
 
 Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
 
@@ -169,8 +178,15 @@ Run `torbox --help` or `torbox <group> --help` for detailed usage and examples.
   though they respond with 410 — audit coverage against the live server, not just
   the spec.
 - **No `queued add`:** there is no route to add a queued download. Create queued
-  items directly by passing `--as-queued` to `torrents create`, `torrents async-create`,
-  `webdl create`, or `webdl async-create`.
+  items directly by passing `--as-queued` to `torrents async-create`,
+  `usenet async-create`, `webdl create`, or `webdl async-create`.
+  (`torrents create` does not support `--as-queued` — use `torrents async-create`.)
+- **API version:** the live API is **v1** — every endpoint lives under `/v1/api/`
+  and the OpenAPI spec at `https://api.torbox.app/docs` reports version `1.0.0`.
+  TorBox's product releases (v9, v9.1, v9.2, …) are a separate version axis; the
+  CLI tracks both (see CHANGELOG.md).
+- **Not yet implemented:** `GET /usenet/provider/connection` (Usenet provider
+  connection info) is present in the live spec but has no CLI command yet.
 
 ### Global Flags
 
@@ -185,6 +201,7 @@ torbox --quiet torrents list         # Suppress human output
 torbox --auto-retry torrents list    # Auto-retry on 429 rate limits
 torbox --profile work torrents list  # Use named profile
 torbox --api-key tb-key torrents list    # Override API key
+torbox --config /path/to/custom.env torrents list  # Custom config file
 ```
 
 ### Common Workflows
@@ -231,6 +248,10 @@ torbox torrents checkcached hashes a1b2c3d4e5f6a7b8c9d0
 # Check multiple hashes via POST (unlimited)
 torbox torrents checkcached hashes hash1 hash2 hash3 --batch
 
+# Look up torrent metadata by hash or magnet link
+torbox torrents torrentinfo a1b2c3d4e5f6a7b8c9d0
+torbox torrents torrentinfo --magnet 'magnet:?xt=urn:btih:...'
+
 # Export a .torrent file
 torbox torrents export 42 --output movie.torrent
 
@@ -253,6 +274,9 @@ torbox general changelogs --format rss
 
 # Run a speed test
 torbox general speedtest --test-length short --region us
+
+# API health check (public, no auth needed)
+torbox general ping
 
 # User account information
 torbox user me
@@ -277,6 +301,10 @@ torbox user transaction-pdf 123 --output invoice.pdf
 torbox user auth-device-start
 torbox user auth-device-token dc123
 
+# Refresh a session token / add a referral code
+torbox user refresh-token <session-token>
+torbox user add-referral <referral-code>
+
 # Manage RSS feeds
 torbox rss list
 torbox rss create https://example.com/feed.xml --name "My Feed" --type torrent
@@ -295,6 +323,10 @@ torbox webdl list
 torbox webdl create https://example.com/file.zip
 torbox webdl hosters --json          # List supported hosters (no auth needed)
 
+# NNTP news server credentials (TorBox v9 built-in Usenet News Server)
+torbox nntp credentials
+torbox nntp reset-password
+
 # Manage queued downloads
 # (queued items are created with --as-queued on the create endpoints)
 torbox queued list
@@ -304,9 +336,10 @@ torbox queued control 5 delete --yes
 torbox notifications list
 torbox notifications test
 torbox notifications clear --yes
+torbox notifications clear-one 42    # Clear a single notification
 
 # Stream management (no revocation endpoint exists in the API)
-torbox stream create 42 --file-id 1 --type torrent
+torbox stream create 42 torrent --file-id 1
 torbox stream data <token>
 
 # Cloud upload jobs (integrations)
