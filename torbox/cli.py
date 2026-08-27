@@ -50,7 +50,7 @@ def _handle_interrupt(signum: int, frame: Any) -> None:
 signal.signal(signal.SIGINT, _handle_interrupt)
 
 
-def _print_error_json(exc: TorBoxError) -> None:
+def _print_error_json(exc: Exception) -> None:
     """Print a JSON error payload including the exit_code."""
     print_error_json(exc)
 
@@ -202,7 +202,13 @@ app.add_typer(
 
 
 def cli_entry() -> None:
-    """Entry point with unified exception handling."""
+    """Entry point with unified exception handling.
+
+    ``TorBoxError`` subclasses map to typed exit codes. Any other
+    unexpected exception is converted into a concise error (JSON envelope
+    in ``--json`` mode, human message otherwise) with exit code 1 so the
+    machine-readable contract is never broken by a raw traceback.
+    """
     try:
         app()
     except TorBoxError as exc:
@@ -212,6 +218,17 @@ def cli_entry() -> None:
             verbose = any(arg in sys.argv for arg in ("--verbose", "-v"))
             print_human_error(exc, verbose=verbose)
         sys.exit(exc.exit_code)
+    except typer.Exit:
+        # Normal typer flow control (e.g. raised by commands, --version,
+        # or abort paths) — let it propagate unchanged.
+        raise
+    except Exception as exc:  # noqa: BLE001 - last-resort error boundary
+        if any(arg in sys.argv for arg in ("--json", "-j")):
+            _print_error_json(exc)
+        else:
+            verbose = any(arg in sys.argv for arg in ("--verbose", "-v"))
+            print_human_error(exc, verbose=verbose)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

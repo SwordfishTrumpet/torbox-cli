@@ -11,6 +11,8 @@ from typing import Any
 
 from dotenv import dotenv_values
 
+from torbox.exceptions import TorBoxError
+
 DEFAULT_BASE_URL = "https://api.torbox.app/v1/api"
 DEFAULT_SERVER_URL = "https://api.torbox.app"
 DEFAULT_TIMEOUT = 30
@@ -19,8 +21,16 @@ MAX_TIMEOUT = 300
 MAX_RETRIES = 10
 
 
-class ConfigValidationError(ValueError):
-    """Raised when a configuration value is invalid."""
+class ConfigValidationError(TorBoxError):
+    """Raised when a configuration value is invalid.
+
+    Subclasses ``TorBoxError`` (exit code 1) so configuration failures
+    flow through the typed error boundary (``handle_errors`` /
+    ``cli_entry``) instead of escaping as raw tracebacks.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, exit_code=1)
 
 
 def _check_file_permissions(path: Path) -> None:
