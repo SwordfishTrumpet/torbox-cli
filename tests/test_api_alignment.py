@@ -289,8 +289,8 @@ def test_webdl_edit_with_payload(httpx_mock: Any) -> None:
     body = json.loads(requests[0].content)
     assert body["webdl_id"] == 5
     assert body["name"] == "Updated"
-    assert body["tags"] == "tag1,tag2"
-    assert body["alternative_hashes"] == "abc,def"
+    assert body["tags"] == ["tag1", "tag2"]
+    assert body["alternative_hashes"] == ["abc", "def"]
 
 
 # --- User auth-device-start --app ---
