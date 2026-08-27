@@ -139,7 +139,14 @@ class TorBoxClient:
             try:
                 resp = self.client.request(method, endpoint, headers=headers, **kwargs)
                 self._record_request(endpoint)
-            except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.NetworkError) as exc:
+            except (
+                httpx.ConnectTimeout,
+                httpx.ReadTimeout,
+                httpx.WriteTimeout,
+                httpx.PoolTimeout,
+                httpx.NetworkError,
+                httpx.RemoteProtocolError,
+            ) as exc:
                 last_exception = exc
                 if attempt < self.retries:
                     if self.verbose:

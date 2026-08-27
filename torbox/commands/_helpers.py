@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import typer
 from typer import Context
+
+try:
+    from typer._click.core import Context as _RuntimeContext
+except ImportError:  # pragma: no cover - older typer re-exports click
+    _RuntimeContext = Context  # type: ignore[misc]
 
 from torbox.client import TorBoxClient
 from torbox.exceptions import TorBoxError
@@ -15,6 +20,13 @@ from torbox.formatters import (
     print_human_error,
     print_json,
 )
+
+# typer 0.26+ vendors click and injects the runtime command context as a
+# keyword argument; that object is ``typer._click.core.Context``, which is
+# NOT the same class as ``typer.Context`` (``typer.models.Context``).
+# Accept both so context detection works across CLI invocation and direct
+# unit-test calls.
+_CONTEXT_TYPES = (Context, _RuntimeContext)
 
 _CLIENT_ATTR = "_torbox_client"
 
@@ -204,6 +216,21 @@ def _print_error_json(exc: Any) -> None:
     print_error_json(exc)
 
 
+def _command_context(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> Context | None:
+    """Return the typer Context passed to a wrapped command, if any.
+
+    typer injects the context as a keyword argument at runtime
+    (``typer._click.core.Context``); direct unit-test invocation may pass
+    ``typer.Context`` positionally. Both expose ``.obj`` for CLI options.
+    """
+    for value in (*args, *kwargs.values()):
+        if isinstance(value, _CONTEXT_TYPES):
+            return cast(Context, value)
+    return None
+
+
 def handle_errors(func: Any) -> Any:
     """Decorator that catches TorBoxError and exits with typed codes.
 
@@ -213,13 +240,14 @@ def handle_errors(func: Any) -> Any:
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        ctx: Context | None = None
-        if args and isinstance(args[0], Context):
-            ctx = args[0]
+        ctx = _command_context(args, kwargs)
         try:
             return func(*args, **kwargs)
         except TorBoxError as exc:
-            if ctx is not None and (_should_json(ctx, False) or _get_field(ctx)):
+            # Honor the global --json flag (ctx.obj) or the command's own
+            # local --json option (passed as a keyword by typer).
+            local_json = bool(kwargs.get("json", False))
+            if ctx is not None and (_should_json(ctx, local_json) or _get_field(ctx)):
                 _print_error_json(exc)
             else:
                 verbose = (
