@@ -152,7 +152,7 @@ torbox --install-completion fish          # fish
 | Group | Commands |
 |-------|----------|
 | `config` | doctor |
-| `general` | status, stats, stats-30days, changelogs, speedtest, docs, ping |
+| `general` | status, stats, stats-30days, changelogs, speedtest, ping |
 | `vendors` | account, accounts, account-info, refresh, register, register-user, remove-user, update-account |
 | `torrents` | list, info, files, create, control, checkcached (hashes), requestdl, export, exportdata, async-create, edit, torrentinfo |
 | `usenet` | list, create, async-create, control, requestdl, export, edit, checkcached |

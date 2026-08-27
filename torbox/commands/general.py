@@ -1,4 +1,4 @@
-"""General commands: status, stats, changelogs, speedtest, docs (no auth)."""
+"""General commands: status, stats, changelogs, speedtest, ping (no auth)."""
 
 from __future__ import annotations
 
@@ -169,20 +169,6 @@ def speedtest(
     if _should_json(ctx, json) or _get_field(ctx, field):
         return
     print_panel(str(data), "Speedtest")
-
-
-@app.command(help="Generate man page\n\nExample: torbox general docs --man")
-@handle_errors
-def docs(
-    ctx: Context,
-    man: bool = typer.Option(False, "--man", help="Output troff man page"),
-) -> None:
-    if man:
-        print(".TH TORBOX 1")
-        print(".SH NAME")
-        print("torbox \\- TorBox CLI")
-    else:
-        print("Use --man for man page output")
 
 
 @app.command(
