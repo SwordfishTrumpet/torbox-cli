@@ -372,13 +372,15 @@ def edit(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, str | int | bool] = {"usenet_download_id": id}
+    payload: dict[str, str | int | bool | list[str]] = {"usenet_download_id": id}
     if name:
         payload["name"] = name
     if tags:
-        payload["tags"] = tags
+        payload["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
     if alternative_hashes:
-        payload["alternative_hashes"] = alternative_hashes
+        payload["alternative_hashes"] = [
+            h.strip() for h in alternative_hashes.split(",") if h.strip()
+        ]
     if airlocked is not None:
         payload["airlocked"] = airlocked
     if dry_run_guard(
