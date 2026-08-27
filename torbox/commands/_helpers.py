@@ -91,6 +91,50 @@ def _set_auto_retry(ctx: Context, auto_retry: bool) -> None:
         ctx.obj["auto_retry"] = True
 
 
+_SECRET_KEY_NAMES = {
+    "token",
+    "refresh_token",
+    "password",
+    "passphrase",
+    "secret",
+    "api_key",
+    "apikey",
+    "authorization",
+}
+_SECRET_KEY_SUFFIXES = (
+    "_token",
+    "_password",
+    "_secret",
+    "_key",
+    "_apikey",
+)
+_REDACTED = "<redacted>"
+
+
+def _is_secret_key(key: str) -> bool:
+    """Return True if a payload key carries credential material."""
+    normalized = key.lower().replace("-", "_")
+    if normalized in _SECRET_KEY_NAMES:
+        return True
+    return any(normalized.endswith(suffix) for suffix in _SECRET_KEY_SUFFIXES)
+
+
+def redact_secrets(value: Any) -> Any:
+    """Recursively replace secret values with a redaction marker.
+
+    Walks nested dicts and lists so payloads that embed credentials in
+    sub-objects are protected too. Non-secret values are returned as-is.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _REDACTED if _is_secret_key(str(key)) else redact_secrets(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_secrets(item) for item in value]
+    return value
+
+
 def dry_run_guard(
     ctx: Context,
     action: str,
@@ -100,11 +144,13 @@ def dry_run_guard(
     """If --dry-run is enabled, print what would be done and return True.
 
     Callers should skip the actual request when this returns True.
+    Secret-bearing payload keys (tokens, passwords, api keys) are
+    redacted before printing so credentials never reach stdout.
     """
     if dry_run:
         print(f"[dry-run] {action}")
         if payload:
-            print(f"[dry-run] payload: {payload}")
+            print(f"[dry-run] payload: {redact_secrets(payload)}")
         return True
     return False
 
