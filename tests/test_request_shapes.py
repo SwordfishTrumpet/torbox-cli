@@ -230,10 +230,9 @@ def test_request_shape_matches_contract(
     elif shape.form:
         assert dict(parse_qsl(request.content.decode())) == shape.form
 
-    for key, value in shape.params.items():
-        assert request.url.params.get(key) == value, (
-            f"missing or wrong query parameter {key!r} for {shape.path}"
-        )
+    # Exact, not "contains": sending the documented parameter *and* a legacy
+    # one would still be a broken request.
+    assert dict(request.url.params) == shape.params
 
 
 @pytest.mark.parametrize(
