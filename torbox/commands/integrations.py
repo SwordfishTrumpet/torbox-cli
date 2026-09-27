@@ -84,7 +84,22 @@ def jobs(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Integration Jobs")
+            # Job fields per the official SDK: what was uploaded, where to, and
+            # how far along it is. `download_url` and `zip` are response details
+            # rather than table columns.
+            print_table(
+                data["data"],
+                "Integration Jobs",
+                columns=[
+                    "id",
+                    "type",
+                    "integration",
+                    "status",
+                    "progress",
+                    "file_id",
+                    "created_at",
+                ],
+            )
     elif not _is_quiet(ctx):
         print_dict_panel(data.get("data", {}), f"Integration Jobs for {hash}")
 
@@ -235,7 +250,19 @@ def list_jobs(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "All Integration Jobs")
+            print_table(
+                data["data"],
+                "All Integration Jobs",
+                columns=[
+                    "id",
+                    "hash",
+                    "type",
+                    "integration",
+                    "status",
+                    "progress",
+                    "created_at",
+                ],
+            )
     elif not _is_quiet(ctx):
         print_panel("Integration jobs list retrieved.", "Integration Jobs")
 

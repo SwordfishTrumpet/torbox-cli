@@ -53,7 +53,21 @@ def list_usenet(
     else:
         if isinstance(data.get("data"), list):
             if not _is_quiet(ctx):
-                print_table(data["data"], "Usenet Downloads")
+                # Field names follow the live response (GetUsenetListOkResponseData
+                # in the official SDK): 34 keys per item render unreadable.
+                print_table(
+                    data["data"],
+                    "Usenet Downloads",
+                    columns=[
+                        "id",
+                        "name",
+                        "size",
+                        "download_state",
+                        "progress",
+                        "download_speed",
+                        "eta",
+                    ],
+                )
         elif not _is_quiet(ctx):
             print("Usenet list: OK")
 

@@ -47,7 +47,20 @@ def list(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "RSS Feeds")
+            # Feed configuration, not the raw response: regexes and scan
+            # intervals are arrays whose rendered form is unreadable.
+            print_table(
+                data["data"],
+                "RSS Feeds",
+                columns=[
+                    "id",
+                    "name",
+                    "url",
+                    "rss_type",
+                    "torrent_seeding",
+                    "pass_check",
+                ],
+            )
     elif not _is_quiet(ctx):
         print("RSS feeds: OK")
 
@@ -72,7 +85,12 @@ def items(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], f"RSS Items (feed {feed_id})")
+            # Item fields: the title (or name), publication date and size.
+            print_table(
+                data["data"],
+                f"RSS Items (feed {feed_id})",
+                columns=["id", "title", "size", "pubDate"],
+            )
     elif not _is_quiet(ctx):
         print(f"RSS items for feed {feed_id}: OK")
 
