@@ -21,10 +21,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOCKFILE = REPO_ROOT / "uv.lock"
-WORKFLOWS = (
-    REPO_ROOT / ".github" / "workflows" / "ci.yml",
-    REPO_ROOT / ".github" / "workflows" / "release.yml",
-)
+# Every workflow, so a new one cannot quietly skip the uv pin.
+WORKFLOWS = sorted((REPO_ROOT / ".github" / "workflows").glob("*.y*ml"))
+# The lock revision this repository pins uv to. Bump both together: a lock
+# written by a newer uv may use a revision the pinned uv cannot read.
+LOCK_REVISION = 3
 
 
 def _lockfile_package_block(name: str) -> str:
@@ -61,22 +62,26 @@ def test_lockfile_root_project_has_no_vcs_version() -> None:
 
 
 def test_lockfile_uses_the_revisioned_dynamic_format() -> None:
-    """A revision-3 lock is what the pinned uv reads and writes."""
+    """The lock revision matches the uv version the workflows pin."""
     head = LOCKFILE.read_text(encoding="utf-8").split("[[package]]")[0]
     match = re.search(r"^revision = (\d+)$", head, re.MULTILINE)
     assert match is not None, "uv.lock has no revision field"
-    assert int(match.group(1)) >= 3, (
-        "uv.lock predates the dynamic root-project format; regenerate it with "
-        "the uv version pinned in the workflows"
+    assert int(match.group(1)) == LOCK_REVISION, (
+        f"uv.lock is revision {int(match.group(1))}, but the workflows pin uv to "
+        f"revision {LOCK_REVISION}; regenerate the lock with the pinned uv (or "
+        "bump the pin, the lock, and LOCK_REVISION together)"
     )
 
 
 def test_workflows_pin_one_uv_version() -> None:
     """Every setup-uv step pins a version, and they all pin the same one."""
     pinned: list[str] = []
+    workflows_with_uv = 0
     for workflow in WORKFLOWS:
         steps = _setup_uv_steps(workflow)
-        assert steps, f"{workflow.name} has no setup-uv step"
+        if not steps:
+            continue
+        workflows_with_uv += 1
         for ref, body in steps:
             assert re.search(r"^\s+version:\s*\S", body, re.MULTILINE), (
                 f"{workflow.name}: astral-sh/setup-uv@{ref} is unpinned, so the "
@@ -86,6 +91,7 @@ def test_workflows_pin_one_uv_version() -> None:
             match = re.search(r'^\s+version:\s*"?([0-9][^\s"\']*)', body, re.MULTILINE)
             assert match is not None, f"{workflow.name}: unreadable uv version pin"
             pinned.append(match.group(1))
+    assert workflows_with_uv > 0, "no workflow sets up uv"
     assert len(set(pinned)) == 1, (
         f"workflows pin different uv versions {sorted(set(pinned))}; the lock "
         "writer and the lock checker must agree"
