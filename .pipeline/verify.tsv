@@ -3,3 +3,4 @@
 41	uv sync --frozen && uv run pytest tests/test_homebrew_formula.py -q --no-cov	0	deployment
 40	uv sync --frozen && uv run pytest tests/test_list_columns.py -q --no-cov	0	usability
 43	uv sync --frozen && uv run pytest tests/test_workflow_pinning.py -q --no-cov	0	supply-chain
+45	uv sync --frozen && uv run pytest tests/test_client.py::test_idempotency_key_on_timeout_retry_without_auto_retry -q --no-cov	0	reliability

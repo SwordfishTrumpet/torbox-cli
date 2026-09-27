@@ -7,6 +7,8 @@ import uuid
 from typing import Any
 from unittest.mock import patch
 
+import httpx
+
 from torbox.client import TorBoxClient
 
 
@@ -47,6 +49,45 @@ def test_idempotency_key_reused_on_retry(httpx_mock: Any) -> None:
     key2 = requests[1].headers["x-idempotency-key"]
     assert key1 == key2
     uuid.UUID(key1)  # valid UUID4
+
+
+def test_idempotency_key_on_timeout_retry_without_auto_retry(
+    httpx_mock: Any,
+) -> None:
+    """A default client retries mutating requests after a timeout (issue #45).
+
+    The idempotency key must be present even when ``--auto-retry`` is off,
+    because the timeout retry path is active by default, and the same key
+    must be reused on every attempt of one logical operation.
+    """
+    url = "https://api.torbox.app/v1/api/torrents/createtorrent"
+    httpx_mock.add_exception(httpx.ReadTimeout("timed out"))
+    httpx_mock.add_response(url=url, json={"success": True})
+    client = TorBoxClient(api_key="dummy", auto_retry=False)
+    with patch("torbox.client.time.sleep"):
+        client.post(
+            "/torrents/createtorrent", data={"magnet": "magnet:?xt=urn:btih:abc"}
+        )
+    requests = httpx_mock.get_requests()
+    assert len(requests) == 2
+    key1 = requests[0].headers["x-idempotency-key"]
+    key2 = requests[1].headers["x-idempotency-key"]
+    uuid.UUID(key1)
+    assert key1 == key2
+
+
+def test_no_idempotency_key_when_retries_disabled(httpx_mock: Any) -> None:
+    """No retry can happen when ``retries`` is 0, so no key is needed."""
+    httpx_mock.add_response(
+        url="https://api.torbox.app/v1/api/torrents/createtorrent",
+        json={"success": True},
+    )
+    client = TorBoxClient(api_key="dummy", auto_retry=False)
+    client.retries = 0
+    client.post("/torrents/createtorrent", data={"magnet": "magnet:?xt=urn:btih:abc"})
+    requests = httpx_mock.get_requests()
+    assert len(requests) == 1
+    assert "x-idempotency-key" not in requests[0].headers
 
 
 def test_no_idempotency_key_on_get(httpx_mock: Any) -> None:
