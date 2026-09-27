@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `torbox/models.py` (Pydantic request/response models) deleted — the runtime serializes raw dicts end-to-end and never used the models layer; removed the unused `pydantic` runtime dependency. `tests/test_models.py` renamed to `tests/test_field_config.py` (field extraction + profile config tests retained) and the model tests dropped (closes #29).
 
 ### Fixed
+- The release documents describe the tool that actually ships (closes #44). `DISCLAIMER.md` no longer describes the `search` command group's Cinemeta title resolution and Stremio addon traffic — both were deleted in `429b641` and shipped in 1.2.0, and the public privacy statement was describing an outbound data flow that stopped existing. `CHANGELOG.md` records that removal under 1.2.0, the `[unreleased]` diff link compares from `v1.3.1` instead of `v1.1.0` (which was never tagged, so the old link showed two releases of unrelated history), and the missing `[1.2.0]`, `[1.3.0]` and `[1.3.1]` link definitions exist. `pyproject.toml`'s `Changelog` url points at `master` instead of the non-existent `main`. `tests/test_docs_consistency.py` now fails when a release heading has no link definition, when the unreleased link drifts off the newest release, or when the metadata url names a branch the repository does not have.
 - The locked transitive `anyio` (via `httpx`) is now 4.15.1, above the 4.14.2 fix for three published advisories — TLS host name encoding that can enable certificate spoofing, process-pool workers blocking on an undrained error stream, and supplementary groups not applied to child processes (closes #42). The vulnerable code paths were unreachable (the CLI is synchronous and imports no `anyio` module), so this closes a latent finding rather than a live defect: `pip-audit -l` now reports no known vulnerabilities for the environment. `tests/test_lockfile_pinning.py` records a version floor per advisory, so a future refresh cannot silently resolve back below a fix.
 - `uv lock --check` now passes on a fresh checkout, so the lint/type/test CI job runs again on `master`: the committed lockfile recorded the project's own `hatch-vcs`-derived version, which is computed from local git state and can never match a fresh clone, so the guard failed on every push since it landed (closes #36). `uv.lock` was regenerated with uv 0.12.19 — the root project is recorded as dynamic and the lock is revision 3, with all 38 resolved dependency versions unchanged. Every `astral-sh/setup-uv` step in `ci.yml` and `release.yml` now pins `0.12.19`, so the lock and the uv that validates it stay in step. `[tool.uv] required-version = ">=0.12"` and a README note make that floor explicit, so a contributor on an older uv gets an upgrade prompt instead of a missing-field error.
 - Nine commands send the request their endpoint documents, so they work instead of being rejected by validation (closes #37): `webdl requestdl` sends the required `web_id` query parameter (was `webdl_id`); `user add-referral` sends `referral` as a query parameter instead of a JSON body keyed `referral_code`; `user delete` always sends the required `session_token`; `integrations oauth register` always sends the required `refresh_token`; and `torrents async-create` (magnet), `torrents torrentinfo` (magnet), `vendors register`, `vendors register-user` and `vendors update-account` send form-encoded bodies instead of JSON. `tests/test_request_shapes.py` asserts the method, path, media type, query parameters and required fields of these call sites and of the siblings that already matched.
@@ -81,7 +82,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limit for `/torrents/createtorrent` updated to 300/minute per the v9.0.0 spec.
 - Synced dependency floors: `pydantic>=2.13.4`, `python-dotenv>=1.2.2`.
 
+### Removed
+- **`search` command group** (`streams`, `library`, `popular`, `info`) and the `torrents checkcached show` subcommand, with their `stremio.py` client, `search.py` module, `guessit` dependency and Cinemeta title resolution. These were announced in 1.1.0 and removed in this release (commit `429b641`) — the 1.1.0 Cinemeta and Stremio disclaimer sections no longer described the shipped tool, so they were dropped too. The removal was not recorded here until it was written down (closes #44).
+
 ## [1.1.0] - 2026-07-06
+
+> No `v1.1.0` tag was ever published: these changes shipped in the [1.2.0] release, which is the first tag after `v1.0.0`.
 
 ### Added
 - **`monitor` command** — Full-screen htop-style TUI dashboard showing live download activity across torrents, usenet, webdl, and queued. Uses Rich `Live` with `screen=True`, polls all 4 APIs concurrently via `ThreadPoolExecutor`, computes speed/ETA from progress deltas, and refreshes every 1s. Supports `--interval`, `--sort`, `--filter`, `--limit`, `--compact`.
@@ -143,6 +149,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ctrl-C graceful exit with POSIX exit code 130.
 - Missing `--field` paths return `null` and exit code 1.
 
-[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.0.0...v1.1.0
+[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.0.0...v1.2.0
+[1.1.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.0.0...v1.2.0
 [1.0.0]: https://github.com/SwordfishTrumpet/torbox-cli/releases/tag/v1.0.0
