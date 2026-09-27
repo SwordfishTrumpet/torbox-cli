@@ -339,7 +339,7 @@ def requestdl(
     _set_auto_retry(ctx, auto_retry)
     client = _get_client(ctx)
     params: dict[str, str | int] = {
-        "webdl_id": id,
+        "web_id": id,
         "file_id": file_id,
         "token": client.api_key,
     }

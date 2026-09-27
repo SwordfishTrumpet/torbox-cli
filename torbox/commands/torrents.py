@@ -588,7 +588,7 @@ def async_create(
             dry_run=dry_run,
         ):
             return
-        data = client.post("/torrents/asynccreatetorrent", json=payload)
+        data = client.post("/torrents/asynccreatetorrent", data=payload)
     print_json_envelope(ctx, data, "torrents async-create", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
@@ -685,7 +685,7 @@ def torrentinfo(
             ctx, "POST /torrents/torrentinfo", payload=payload, dry_run=dry_run
         ):
             return
-        data: dict[str, Any] = client.post("/torrents/torrentinfo", json=payload)
+        data: dict[str, Any] = client.post("/torrents/torrentinfo", data=payload)
     else:
         if not hash:
             raise typer.BadParameter("Either provide a hash or use --magnet")

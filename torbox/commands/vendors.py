@@ -167,7 +167,7 @@ def register(
     if dry_run_guard(ctx, "POST /vendors/register", payload=payload, dry_run=dry_run):
         return
     client = _get_client(ctx)
-    data: dict[str, Any] = client.post("/vendors/register", json=payload)
+    data: dict[str, Any] = client.post("/vendors/register", data=payload)
     print_json_envelope(ctx, data, "vendors register", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
@@ -200,7 +200,7 @@ def register_user(
     ):
         return
     client = _get_client(ctx)
-    data: dict[str, Any] = client.post("/vendors/registeruser", json=payload)
+    data: dict[str, Any] = client.post("/vendors/registeruser", data=payload)
     print_json_envelope(ctx, data, "vendors register-user", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return
@@ -280,7 +280,7 @@ def update_account(
     ):
         return
     client = _get_client(ctx)
-    data: dict[str, Any] = client.put("/vendors/updateaccount", json=payload)
+    data: dict[str, Any] = client.put("/vendors/updateaccount", data=payload)
     print_json_envelope(ctx, data, "vendors update-account", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return

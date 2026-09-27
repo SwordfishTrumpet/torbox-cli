@@ -286,10 +286,10 @@ def delete(
     confirmation_code: int = typer.Option(
         ..., "--confirmation-code", help="Confirmation code from user confirmation"
     ),
-    session_token: str | None = typer.Option(
-        None,
+    session_token: str = typer.Option(
+        ...,
         "--session-token",
-        help="Session token (from the website localStorage) if required",
+        help="Session token from the website localStorage (required by the API)",
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
@@ -301,9 +301,10 @@ def delete(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, Any] = {"confirmation_code": confirmation_code}
-    if session_token:
-        payload["session_token"] = session_token
+    payload: dict[str, Any] = {
+        "confirmation_code": confirmation_code,
+        "session_token": session_token,
+    }
     if dry_run_guard(ctx, "DELETE /user/deleteme", payload=payload, dry_run=dry_run):
         return
     if not yes:
@@ -492,11 +493,13 @@ def add_referral(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, str] = {"referral_code": referral_code}
-    if dry_run_guard(ctx, "POST /user/addreferral", payload=payload, dry_run=dry_run):
+    # The endpoint declares `referral` as a required query parameter and
+    # takes no request body.
+    params: dict[str, str] = {"referral": referral_code}
+    if dry_run_guard(ctx, "POST /user/addreferral", payload=params, dry_run=dry_run):
         return
     client = _get_client(ctx)
-    data: dict[str, Any] = client.post("/user/addreferral", json=payload)
+    data: dict[str, Any] = client.post("/user/addreferral", params=params)
     print_json_envelope(ctx, data, "user add-referral", local_json=json)
     if _should_json(ctx, json) or _get_field(ctx):
         return

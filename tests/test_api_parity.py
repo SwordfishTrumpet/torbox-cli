@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.parse import parse_qsl
 
 from typer.testing import CliRunner
 
@@ -26,7 +27,8 @@ class TestTorrentsAsyncCreate:
         )
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
-        body = json.loads(req.content)
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        body = dict(parse_qsl(req.content.decode()))
         assert body["magnet"] == "magnet:?xt=urn:btih:abc"
 
     def test_async_create_with_options(self, httpx_mock: Any) -> None:
@@ -52,11 +54,12 @@ class TestTorrentsAsyncCreate:
         )
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
-        body = json.loads(req.content)
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        body = dict(parse_qsl(req.content.decode()))
         assert body["name"] == "Test"
-        assert body["seed"] == 2
-        assert body["as_queued"] == 1
-        assert body["allow_zip"] == 1
+        assert body["seed"] == "2"
+        assert body["as_queued"] == "1"
+        assert body["allow_zip"] == "1"
 
     def test_async_create_no_source_fails(self) -> None:
         result = runner.invoke(
@@ -805,6 +808,10 @@ class TestTorrentsTorrentInfo:
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
         assert req.method == "POST"
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        assert dict(parse_qsl(req.content.decode())) == {
+            "magnet": "magnet:?xt=urn:btih:abc"
+        }
 
     def test_torrentinfo_dry_run(self) -> None:
         result = runner.invoke(
@@ -1186,30 +1193,68 @@ class TestUserDelete:
         monkeypatch.setattr("builtins.input", lambda _: "yes")
         result = runner.invoke(
             app,
-            ["user", "delete", "--confirmation-code", "123456", "--json"],
+            [
+                "user",
+                "delete",
+                "--confirmation-code",
+                "123456",
+                "--session-token",
+                "sess_abc",
+                "--json",
+            ],
             env={"TORBOX_API_KEY": "dummy"},
         )
         assert result.exit_code == 0
-        assert len(httpx_mock.get_requests()) == 1
+        requests = httpx_mock.get_requests()
+        assert len(requests) == 1
+        body = json.loads(requests[0].content)
+        assert body == {"confirmation_code": 123456, "session_token": "sess_abc"}
 
-    def test_delete_prompt_denied(self, monkeypatch: Any) -> None:
+    def test_delete_prompt_denied(self, monkeypatch: Any, httpx_mock: Any) -> None:
         monkeypatch.setattr("builtins.input", lambda _: "n")
         result = runner.invoke(
             app,
-            ["user", "delete", "--confirmation-code", "123456"],
+            [
+                "user",
+                "delete",
+                "--confirmation-code",
+                "123456",
+                "--session-token",
+                "sess_abc",
+            ],
             env={"TORBOX_API_KEY": "dummy"},
         )
         assert result.exit_code == 0
+        assert httpx_mock.get_requests() == []
 
     def test_delete_dry_run(self) -> None:
         result = runner.invoke(
             app,
-            ["user", "delete", "--confirmation-code", "123456", "--dry-run"],
+            [
+                "user",
+                "delete",
+                "--confirmation-code",
+                "123456",
+                "--session-token",
+                "sess_abc",
+                "--dry-run",
+            ],
             env={"TORBOX_API_KEY": "dummy"},
         )
         assert result.exit_code == 0
         assert "[dry-run]" in result.output
         assert "DELETE /user/deleteme" in result.output
+        assert "sess_abc" not in result.output
+
+    def test_delete_requires_session_token(self, httpx_mock: Any) -> None:
+        """The API schema requires session_token; the CLI must not omit it."""
+        result = runner.invoke(
+            app,
+            ["user", "delete", "--confirmation-code", "123456", "--yes"],
+            env={"TORBOX_API_KEY": "dummy"},
+        )
+        assert result.exit_code != 0
+        assert httpx_mock.get_requests() == []
 
 
 class TestUserSubscriptions:
@@ -1321,7 +1366,7 @@ class TestUserRefreshToken:
 class TestUserAddReferral:
     def test_add_referral(self, httpx_mock: Any) -> None:
         httpx_mock.add_response(
-            url=f"{DEFAULT_BASE_URL}/user/addreferral",
+            url=f"{DEFAULT_BASE_URL}/user/addreferral?referral=REFERRAL123",
             json={"success": True, "data": None},
         )
         result = runner.invoke(
@@ -1331,8 +1376,8 @@ class TestUserAddReferral:
         )
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
-        body = json.loads(req.content)
-        assert body["referral_code"] == "REFERRAL123"
+        assert req.url.params.get("referral") == "REFERRAL123"
+        assert req.content == b""
 
     def test_add_referral_dry_run(self) -> None:
         result = runner.invoke(
@@ -1453,7 +1498,9 @@ class TestVendors:
             env={"TORBOX_API_KEY": "dummy"},
         )
         assert result.exit_code == 0
-        body = json.loads(httpx_mock.get_requests()[0].content)
+        req = httpx_mock.get_requests()[0]
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        body = dict(parse_qsl(req.content.decode()))
         assert body["vendor_name"] == "MyApp"
         assert body["vendor_url"] == "https://example.com"
 
@@ -1474,7 +1521,7 @@ class TestVendors:
             env={"TORBOX_API_KEY": "dummy"},
         )
         assert result.exit_code == 0
-        body = json.loads(httpx_mock.get_requests()[0].content)
+        body = dict(parse_qsl(httpx_mock.get_requests()[0].content.decode()))
         assert body["user_email"] == "u@example.com"
 
     def test_remove_user(self, httpx_mock: Any) -> None:
@@ -1505,7 +1552,8 @@ class TestVendors:
         assert result.exit_code == 0
         req = httpx_mock.get_requests()[0]
         assert req.method == "PUT"
-        body = json.loads(req.content)
+        assert req.headers["content-type"] == "application/x-www-form-urlencoded"
+        body = dict(parse_qsl(req.content.decode()))
         assert body["vendor_name"] == "NewName"
 
     def test_help(self) -> None:

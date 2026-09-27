@@ -347,7 +347,7 @@ torbox integrations cancel <job-id> --yes
 
 # Integration OAuth lifecycle
 torbox integrations oauth list
-torbox integrations oauth register googledrive --token gtoken
+torbox integrations oauth register googledrive --token gtoken --refresh-token grefresh
 ```
 
 ### Cron-Safe Automation

@@ -317,9 +317,9 @@ def oauth_info(
 def oauth_register(
     ctx: Context,
     provider: str = typer.Argument(..., help="Provider name"),
-    token: str | None = typer.Option(None, "--token", help="OAuth token"),
-    refresh_token: str | None = typer.Option(
-        None, "--refresh-token", help="OAuth refresh token"
+    token: str = typer.Option(..., "--token", help="OAuth access token"),
+    refresh_token: str = typer.Option(
+        ..., "--refresh-token", help="OAuth refresh token"
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
@@ -330,11 +330,9 @@ def oauth_register(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    payload: dict[str, str] = {}
-    if token:
-        payload["token"] = token
-    if refresh_token:
-        payload["refresh_token"] = refresh_token
+    # Both fields are required by the endpoint's request schema; the CLI
+    # requires them as options so an incomplete body is never sent.
+    payload: dict[str, str] = {"token": token, "refresh_token": refresh_token}
     if dry_run_guard(
         ctx,
         f"POST /integration/oauth/{provider}/register",
