@@ -19,6 +19,9 @@ jobs:
       - name: Set up uv and Python ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@v5
         with:
+          # Pinned: `uv.lock` is a revision-3 lockfile and `uv lock --check`
+          # semantics change between uv releases (see AGENTS.md).
+          version: "0.12.19"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
@@ -54,6 +57,8 @@ jobs:
       - name: Set up uv and Python
         uses: astral-sh/setup-uv@v5
         with:
+          # Pinned to the version that wrote `uv.lock` (see AGENTS.md).
+          version: "0.12.19"
           python-version: "3.12"
 
       - name: Build wheel and sdist

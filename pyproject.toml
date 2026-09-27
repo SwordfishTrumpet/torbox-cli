@@ -39,6 +39,11 @@ Changelog = "https://github.com/SwordfishTrumpet/torbox-cli/blob/main/CHANGELOG.
 [project.scripts]
 torbox = "torbox.cli:cli_entry"
 
+[tool.uv]
+# The committed uv.lock is a revision-3 lockfile; older uv releases cannot
+# read it (they fail with a missing `version` field).
+required-version = ">=0.12"
+
 [tool.hatch.version]
 source = "vcs"
 
