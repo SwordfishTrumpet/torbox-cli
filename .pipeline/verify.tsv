@@ -5,3 +5,4 @@
 43	uv sync --frozen && uv run pytest tests/test_workflow_pinning.py -q --no-cov	0	supply-chain
 45	uv sync --frozen && uv run pytest tests/test_client.py::test_idempotency_key_on_timeout_retry_without_auto_retry -q --no-cov	0	reliability
 46	! grep -q types-python-dateutil pyproject.toml && ! grep -rqE "def (parse_size|parse_date|is_valid_torrent_hash)" torbox/	0	dead-code
+47	uv sync --frozen && uv run pytest tests/test_network_guard.py -q --no-cov	0	testing
