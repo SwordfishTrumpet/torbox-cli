@@ -183,7 +183,7 @@ def create(
 @app.command(
     help=(
         "POST /webdl/controlwebdownload — Control web download (delete|pause|resume). "
-        "Example: torbox webdl control 20 delete --yes"
+        "Example: torbox webdl control 20 --operation delete --yes"
     )
 )
 @handle_errors

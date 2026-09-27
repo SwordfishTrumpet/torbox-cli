@@ -261,7 +261,7 @@ torbox torrents export 42 --output movie.torrent
 torbox torrents requestdl 42 1
 
 # Batch-create torrents from a file (dry-run first)
-cat magnets.txt | xargs -I {} torbox torrents create {} --dry-run
+cat magnets.txt | xargs -I {} torbox torrents create --magnet {} --dry-run
 
 # Check API status (public endpoint, no auth needed)
 torbox general status
@@ -357,17 +357,17 @@ torbox integrations oauth register googledrive --token gtoken --refresh-token gr
 
 ```bash
 # Auto-retry with backoff so rate limits don't kill nightly jobs
-torbox torrents list --auto-retry --json --quiet > /var/log/torbox-backup.json
+torbox --quiet torrents list --auto-retry --json > /var/log/torbox-backup.json
 
 # Silent JSON output for scheduled tasks
-torbox torrents list --json --quiet
+torbox --quiet torrents list --json
 ```
 
 ### Debug a Failing Command
 
 ```bash
 # Verbose mode shows request timing and headers
-torbox general status --verbose
+torbox --verbose general status
 
 # Inspect why auth isn't resolving where you expect
 torbox config doctor
@@ -490,6 +490,10 @@ torbox config doctor --json   # machine-readable output
    ```
 
 3. Add the CLI command to `torbox/commands/*.py` with real-world `help=` text.
+   Every example you put in the README or in a command's `Example:` help line is
+   executed by `tests/test_documented_examples.py`, so keep those invocations
+   runnable — global flags (`--json`, `--quiet`, `--verbose`, `--field`,
+   `--compact`) go **before** the subcommand.
 
 4. Add tests in `tests/test_<group>.py`.
 

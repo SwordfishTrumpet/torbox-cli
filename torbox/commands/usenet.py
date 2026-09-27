@@ -193,7 +193,7 @@ def async_create(
 @app.command(
     help=(
         "POST /usenet/controlusenetdownload — Control usenet (delete|pause|resume). "
-        "Example: torbox usenet control 10 delete --yes"
+        "Example: torbox usenet control 10 --operation delete --yes"
     )
 )
 @handle_errors
