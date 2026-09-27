@@ -21,7 +21,7 @@ TEST_KEY = "dummy-test-key"
 
 def test_webdl_requestdl_basic(httpx_mock: Any) -> None:
     httpx_mock.add_response(
-        url=f"{DEFAULT_BASE_URL}/webdl/requestdl?webdl_id=1&file_id=2&token=dummy",
+        url=f"{DEFAULT_BASE_URL}/webdl/requestdl?web_id=1&file_id=2&token=dummy",
         json={"success": True, "data": {"link": "https://example.com"}},
     )
     result = runner.invoke(
@@ -36,7 +36,7 @@ def test_webdl_requestdl_with_flags(httpx_mock: Any) -> None:
     httpx_mock.add_response(
         url=(
             f"{DEFAULT_BASE_URL}/webdl/requestdl"
-            "?webdl_id=1&file_id=2&token=dummy&zip_link=1&user_ip=1.2.3.4&redirect=1&append_name=1"
+            "?web_id=1&file_id=2&token=dummy&zip_link=1&user_ip=1.2.3.4&redirect=1&append_name=1"
         ),
         json={"success": True, "data": {"link": "https://example.com"}},
     )
