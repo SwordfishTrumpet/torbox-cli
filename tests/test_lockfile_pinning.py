@@ -27,6 +27,11 @@ WORKFLOWS = sorted((REPO_ROOT / ".github" / "workflows").glob("*.y*ml"))
 # written by a newer uv may use a revision the pinned uv cannot read.
 LOCK_REVISION = 3
 
+# Transitive dependencies with a published advisory that the lock must stay at or
+# above. The vulnerable code paths may be unreachable today, but a lock refresh
+# that resolves back below the fix silently re-introduces the finding (#42).
+ADVISORY_FLOORS: dict[str, tuple[int, ...]] = {"anyio": (4, 14, 2)}
+
 
 def _lockfile_package_block(name: str) -> str:
     """Return the ``[[package]]`` block whose ``name`` field matches ``name``."""
@@ -83,6 +88,20 @@ def test_pyproject_declares_the_uv_floor() -> None:
     )
     floor = (int(match.group(1)), int(match.group(2)))
     assert floor >= (0, 12), f"required-version {floor} is below the lock's floor"
+
+
+def test_locked_transitive_dependencies_meet_advisory_floors() -> None:
+    """A lock refresh must not resolve below a published advisory fix."""
+    for name, floor in ADVISORY_FLOORS.items():
+        block = _lockfile_package_block(name)
+        match = re.search(r'^version = "([^"]+)"', block, re.MULTILINE)
+        assert match is not None, f"uv.lock has no version for {name}"
+        resolved = tuple(int(part) for part in match.group(1).split("."))
+        assert resolved >= floor, (
+            f"uv.lock pins {name} {match.group(1)}, below the "
+            f"{'.'.join(str(part) for part in floor)} fix for the advisories "
+            "reported in issue #42"
+        )
 
 
 def test_workflows_pin_one_uv_version() -> None:
