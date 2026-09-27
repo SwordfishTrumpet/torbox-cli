@@ -16,6 +16,11 @@ build/
 TRD.md
 TODO.md
 AGENTS.md
+TODO.md.*
+
+# Pipeline runtime state — local-only, never commit (#48)
+LEDGER.tsv
+.pipeline-lock
 
 # Superpowers / AI planning artifacts
 docs/superpowers/
