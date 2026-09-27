@@ -244,7 +244,7 @@ def create(
 @app.command(
     help=(
         "POST /torrents/controltorrent — Control torrent (delete|pause|resume). "
-        "Example: torbox torrents control 42 delete --yes"
+        "Example: torbox torrents control 42 --operation delete --yes"
     )
 )
 @handle_errors

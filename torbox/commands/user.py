@@ -277,7 +277,8 @@ def subscriptions(
         "DELETE /user/deleteme — Permanently delete your TorBox account\n\n"
         'Requires the confirmation code from `user confirmation` plus a "yes" '
         "confirmation (or --yes). This cannot be undone.\n"
-        "Example: torbox user delete --confirmation-code 123456 --yes"
+        "Example: torbox user delete --confirmation-code 123456 "
+        "--session-token <session-token> --yes"
     )
 )
 @handle_errors
