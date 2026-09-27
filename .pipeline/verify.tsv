@@ -1,3 +1,4 @@
 # issue	command	expected-exit	area
 42	uv sync --frozen && uv run pytest tests/test_lockfile_pinning.py -q --no-cov	0	dependency
 41	uv sync --frozen && uv run pytest tests/test_homebrew_formula.py -q --no-cov	0	deployment
+40	uv sync --frozen && uv run pytest tests/test_list_columns.py -q --no-cov	0	usability

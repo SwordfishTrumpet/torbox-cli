@@ -309,7 +309,22 @@ def hosters(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Hosters")
+            # Hosters carry around fifteen keys including nested domains and
+            # limits; the name, type, status and daily link quota are the useful
+            # comparison.
+            print_table(
+                data["data"],
+                "Hosters",
+                columns=[
+                    "id",
+                    "name",
+                    "type",
+                    "status",
+                    "url",
+                    "daily_link_used",
+                    "daily_link_limit",
+                ],
+            )
     elif not _is_quiet(ctx):
         print_panel("Hosters list retrieved.", "Hosters")
 

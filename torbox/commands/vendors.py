@@ -77,7 +77,15 @@ def accounts(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Vendor Accounts")
+            # The Vendors API is documented as incomplete (see the module
+            # docstring), so these follow the account identifiers its sibling
+            # commands address: `getaccount`/`removeuser` take a user_auth_id and
+            # registration takes a user email.
+            print_table(
+                data["data"],
+                "Vendor Accounts",
+                columns=["user_auth_id", "email", "created_at"],
+            )
     elif not _is_quiet(ctx):
         print_panel("Vendor accounts list retrieved.", "Vendor Accounts")
 

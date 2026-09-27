@@ -80,7 +80,13 @@ def list(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Notifications")
+            # A notification is useful as its title, message and arrival time;
+            # the action_* keys only make sense to the web UI.
+            print_table(
+                data["data"],
+                "Notifications",
+                columns=["id", "title", "message", "created_at"],
+            )
     elif not _is_quiet(ctx):
         print_panel("Notifications list retrieved.", "Notifications")
 

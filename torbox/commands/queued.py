@@ -47,7 +47,13 @@ def list(
         return
     if isinstance(data.get("data"), builtins.list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Queued")
+            # Queued items carry the fields the queue needs to identify a download
+            # (id, name, hash, type) and its insertion time.
+            print_table(
+                data["data"],
+                "Queued",
+                columns=["id", "name", "hash", "type", "created_at"],
+            )
     elif not _is_quiet(ctx):
         print_panel("No queued downloads found.", "Queued")
 

@@ -147,7 +147,13 @@ def transactions(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Transactions")
+            # The four fields the API returns per transaction; a payment history
+            # is read by date, amount and type.
+            print_table(
+                data["data"],
+                "Transactions",
+                columns=["transaction_id", "type", "amount", "at"],
+            )
     elif not _is_quiet(ctx):
         print("Transactions: OK")
 
@@ -263,7 +269,11 @@ def subscriptions(
         return
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
-            print_table(data["data"], "Subscriptions")
+            print_table(
+                data["data"],
+                "Subscriptions",
+                columns=["plan_name", "plan_code", "status", "gateway", "created_at"],
+            )
     elif not _is_quiet(ctx):
         item = data.get("data") if isinstance(data, dict) else data
         if isinstance(item, dict):
