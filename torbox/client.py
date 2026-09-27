@@ -210,6 +210,11 @@ class TorBoxClient:
 
         assert resp is not None
 
+        # Decision (issue #35): a non-2xx status is classified by HTTP status
+        # alone. The API's own error code is only consulted for a 2xx body that
+        # reports success=false. No plan-restriction response delivered with a
+        # 4xx status has been observed, and treating every 4xx body as
+        # authoritative would risk masking auth and not-found errors.
         if not resp.is_success:
             raise map_http_status(resp.status_code, resp.text)
         if return_raw:

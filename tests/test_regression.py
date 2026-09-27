@@ -46,7 +46,7 @@ runner = CliRunner()
         ("DUPLICATE_ITEM", ValidationError, 1),
         ("BOZO_RSS_FEED", ValidationError, 1),
         ("TOO_MUCH_DATA", ValidationError, 1),
-        ("DOWNLOAD_TOO_LARGE", ValidationError, 1),
+        ("DOWNLOAD_TOO_LARGE", PlanRestrictedError, 5),
         ("MISSING_REQUIRED_OPTION", ValidationError, 1),
         ("TOO_MANY_OPTIONS", ValidationError, 1),
         ("BOZO_TORRENT", ValidationError, 1),
@@ -81,6 +81,30 @@ def test_map_error_code_unknown_defaults_to_server_error() -> None:
     exc = map_error_code("SOME_UNKNOWN_CODE", "something broke")
     assert isinstance(exc, ServerError)
     assert exc.exit_code == 3
+
+
+def test_oversized_download_exits_plan_restricted(httpx_mock: Any) -> None:
+    """An oversized download is a plan ceiling, not bad input (issue #35).
+
+    The documented error table files DOWNLOAD_TOO_LARGE under plan limits
+    ("the user is recommended to upgrade their plan"), and the CLI's own
+    contract says exit code 5 means plan restricted, so automation that keys
+    "upgrade your plan" messaging off that code must see it here.
+    """
+    httpx_mock.add_response(
+        json={
+            "success": False,
+            "error": "DOWNLOAD_TOO_LARGE",
+            "detail": "This download is oversized for the users plan.",
+        }
+    )
+    result = runner.invoke(
+        app,
+        ["webdl", "create", "https://example.com/oversized.zip"],
+        env={"TORBOX_API_KEY": "dummy"},
+    )
+    assert result.exit_code == 5
+    assert result.exit_code != 1
 
 
 # --- map_http_status regression tests ---

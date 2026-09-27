@@ -33,7 +33,12 @@ class NotFoundError(TorBoxError):
 
 
 class PlanRestrictedError(TorBoxError):
-    """Raised for plan-restricted features (PLAN_RESTRICTED_FEATURE, MONTHLY_LIMIT)."""
+    """Raised for plan-restricted features.
+
+    Covers the documented plan-limit codes: PLAN_RESTRICTED_FEATURE,
+    MONTHLY_LIMIT, and DOWNLOAD_TOO_LARGE (the per-plan download-size
+    ceiling, which the API documents as an upgrade prompt).
+    """
 
     def __init__(self, message: str) -> None:
         super().__init__(message, exit_code=5)
@@ -84,7 +89,7 @@ def map_error_code(error_code: str, detail: str) -> TorBoxError:
         "DUPLICATE_ITEM": ValidationError,
         "BOZO_RSS_FEED": ValidationError,
         "TOO_MUCH_DATA": ValidationError,
-        "DOWNLOAD_TOO_LARGE": ValidationError,
+        "DOWNLOAD_TOO_LARGE": PlanRestrictedError,
         "MISSING_REQUIRED_OPTION": ValidationError,
         "TOO_MANY_OPTIONS": ValidationError,
         "BOZO_TORRENT": ValidationError,
