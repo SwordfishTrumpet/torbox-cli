@@ -206,6 +206,12 @@ torbox --api-key tb-key torrents list    # Override API key
 torbox --config /path/to/custom.env torrents list  # Custom config file
 ```
 
+`--auto-retry` only adds 429 backoff; timeout retries follow `TORBOX_RETRIES`
+(default 3) either way. Whenever a retry is possible, mutating requests
+(`POST`, `PUT`, `PATCH`, `DELETE`) carry an `X-Idempotency-Key` header that is
+reused across every attempt of one logical operation, so a create, update or
+delete that timed out after the server accepted it is not applied twice.
+
 ### Common Workflows
 
 ```bash

@@ -125,7 +125,13 @@ class TorBoxClient:
         elif auth == "optional" and self.api_key:
             headers = {**headers, "Authorization": f"Bearer {self.api_key}"}
 
-        if method in {"POST", "PUT", "DELETE"} and self.auto_retry:
+        # Every mutating request carries one idempotency key per logical
+        # operation whenever a retry is possible (timeout retries follow
+        # ``retries``, 429 backoff follows ``auto_retry``). The key is
+        # generated once, before the retry loop, so a create/update/delete
+        # that timed out after the server accepted it is de-duplicated on
+        # every repeat instead of being applied again (issue #45).
+        if method in {"POST", "PUT", "PATCH", "DELETE"} and self.retries > 0:
             idempotency_key = str(uuid.uuid4())
             headers = {**headers, "X-Idempotency-Key": idempotency_key}
             if self.verbose:
