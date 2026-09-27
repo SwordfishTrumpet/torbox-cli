@@ -34,7 +34,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/SwordfishTrumpet/torbox-cli"
 Repository = "https://github.com/SwordfishTrumpet/torbox-cli"
-Changelog = "https://github.com/SwordfishTrumpet/torbox-cli/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/SwordfishTrumpet/torbox-cli/blob/master/CHANGELOG.md"
 
 [project.scripts]
 torbox = "torbox.cli:cli_entry"
