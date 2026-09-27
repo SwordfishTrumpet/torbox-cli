@@ -19,6 +19,8 @@ jobs:
       - name: Set up uv and Python
         uses: astral-sh/setup-uv@v5
         with:
+          # Pinned to the version that wrote `uv.lock` (see AGENTS.md).
+          version: "0.12.19"
           python-version: "3.12"
 
       - name: Build wheel and sdist

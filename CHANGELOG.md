@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - `torbox/models.py` (Pydantic request/response models) deleted — the runtime serializes raw dicts end-to-end and never used the models layer; removed the unused `pydantic` runtime dependency. `tests/test_models.py` renamed to `tests/test_field_config.py` (field extraction + profile config tests retained) and the model tests dropped (closes #29).
 
+### Fixed
+- `uv lock --check` now passes on a fresh checkout, so the lint/type/test CI job runs again on `master`: the committed lockfile recorded the project's own `hatch-vcs`-derived version, which is computed from local git state and can never match a fresh clone, so the guard failed on every push since it landed (closes #36). `uv.lock` was regenerated with uv 0.12.19 — the root project is recorded as dynamic and the lock is revision 3, with all 38 resolved dependency versions unchanged. Every `astral-sh/setup-uv` step in `ci.yml` and `release.yml` now pins `0.12.19`, so the lock and the uv that validates it stay in step.
+
 ### Changed
 - Added 49 error-path/human-mode tests for the `queued`, `vendors`, and `integrations` command groups — line coverage for all three modules raised to 100%, with every `raise` path (BadParameter, confirm-decline `typer.Exit`) asserted (closes #32).
 - `uv.lock` is now committed and CI installs via `uv sync --frozen` (plus a `uv lock --check` drift guard), making dev builds reproducible. Dev tooling consolidated into `[dependency-groups] dev` (the `dev` optional-dependencies extra was removed); release workflow now attaches a `requirements.lock.txt` pin list (`uv export --frozen`) to each GitHub Release so resolved versions are recorded (closes #30).
