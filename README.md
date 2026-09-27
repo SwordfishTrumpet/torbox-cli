@@ -97,6 +97,9 @@ Set your API key using one of these methods (listed in priority order):
 torbox --api-key tb-your-key torrents list
 ```
 
+The flag sets the API key only. `TORBOX_BASE_URL`, `TORBOX_TIMEOUT`, `TORBOX_RETRIES`, the
+config file and the active profile still apply.
+
 **2. Environment variable:**
 
 ```bash
