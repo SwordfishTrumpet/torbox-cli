@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [master]
 
+# Least privilege: the token only needs to read the checkout. Without this the
+# workflow inherits the repository default, which an owner can change later.
+permissions:
+  contents: read
+
 jobs:
   lint-type-test:
     runs-on: ubuntu-latest
@@ -14,10 +19,10 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
 
       - name: Set up uv and Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
         with:
           # Pinned: `uv.lock` is a revision-3 lockfile and `uv lock --check`
           # semantics change between uv releases (see AGENTS.md).
@@ -42,7 +47,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
@@ -50,12 +55,12 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0  # Needed for hatch-vcs to read tags
 
       - name: Set up uv and Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
         with:
           # Pinned to the version that wrote `uv.lock` (see AGENTS.md).
           version: "0.12.19"

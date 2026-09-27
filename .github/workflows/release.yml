@@ -12,12 +12,12 @@ jobs:
   github-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0  # Needed for hatch-vcs to read tags
 
       - name: Set up uv and Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
         with:
           # Pinned to the version that wrote `uv.lock` (see AGENTS.md).
           version: "0.12.19"
@@ -30,7 +30,7 @@ jobs:
         run: uv export --frozen -o requirements.lock.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64  # v3
         with:
           files: |
             dist/*
