@@ -477,6 +477,9 @@ torbox config doctor --json   # machine-readable output
    ```bash
    uv sync
    ```
+   Requires uv 0.12 or newer — the committed `uv.lock` uses a lock format
+   older uv releases cannot read, and `uv` will say so instead of failing
+   with a missing-field error.
 
 2. Enable git hooks:
    ```bash

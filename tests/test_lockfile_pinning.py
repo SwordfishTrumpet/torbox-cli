@@ -73,6 +73,18 @@ def test_lockfile_uses_the_revisioned_dynamic_format() -> None:
     )
 
 
+def test_pyproject_declares_the_uv_floor() -> None:
+    """A revision-3 lock needs uv >= 0.12, so the floor is machine-enforced."""
+    text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^required-version\s*=\s*">=(\d+)\.(\d+)"', text, re.MULTILINE)
+    assert match is not None, (
+        "[tool.uv] required-version is missing, so a contributor on an old uv "
+        "gets a cryptic lockfile error instead of an upgrade prompt"
+    )
+    floor = (int(match.group(1)), int(match.group(2)))
+    assert floor >= (0, 12), f"required-version {floor} is below the lock's floor"
+
+
 def test_workflows_pin_one_uv_version() -> None:
     """Every setup-uv step pins a version, and they all pin the same one."""
     pinned: list[str] = []
