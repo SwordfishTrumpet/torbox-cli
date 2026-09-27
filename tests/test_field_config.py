@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -210,4 +211,100 @@ def test_config_doctor_shows_profile() -> None:
     assert result.exit_code == 0
     data = json.loads(result.output)
     assert data["data"]["effective"]["profile"] == "work"
+    _clear_torbox_env()
+
+
+# ---------------------------------------------------------------------------
+# CLI --api-key override: it wins for the key only (issue #38)
+# ---------------------------------------------------------------------------
+
+
+def test_api_key_override_keeps_env_settings(monkeypatch: Any, tmp_path: Path) -> None:
+    """A CLI key must not discard the configured base url, timeout and retries."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # Avoid CWD .env interference
+    monkeypatch.setenv("TORBOX_BASE_URL", "https://mirror.example/v1/api")
+    monkeypatch.setenv("TORBOX_TIMEOUT", "99")
+    monkeypatch.setenv("TORBOX_RETRIES", "7")
+
+    cfg = load_config(api_key_override="cli-key")
+
+    assert cfg["api_key"] == "cli-key"
+    assert cfg["base_url"] == "https://mirror.example/v1/api"
+    assert cfg["timeout"] == 99
+    assert cfg["retries"] == 7
+    _clear_torbox_env()
+
+
+def test_api_key_override_still_reads_the_config_file_and_profile(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Supplying a key must not skip the file merge or the profile section."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    config_file = tmp_path / "config.env"
+    config_file.write_text(
+        "[work]\nTORBOX_API_KEY=profile-key\n"
+        "TORBOX_BASE_URL=https://profile.example/v1/api\nTORBOX_TIMEOUT=45\n",
+        encoding="utf-8",
+    )
+
+    cfg = load_config(
+        api_key_override="cli-key", config_path=str(config_file), profile="work"
+    )
+
+    assert cfg["api_key"] == "cli-key"
+    assert cfg["base_url"] == "https://profile.example/v1/api"
+    assert cfg["timeout"] == 45
+    _clear_torbox_env()
+
+
+def test_api_key_override_wins_over_env_and_profile(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Precedence stays CLI flag > env var > .env/config file > profile."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TORBOX_API_KEY", "env-key")
+    config_file = tmp_path / "config.env"
+    config_file.write_text("[work]\nTORBOX_API_KEY=profile-key\n", encoding="utf-8")
+
+    cfg = load_config(
+        api_key_override="cli-key", config_path=str(config_file), profile="work"
+    )
+
+    assert cfg["api_key"] == "cli-key"
+    _clear_torbox_env()
+
+    # Without the override, the env var still wins over the profile.
+    monkeypatch.setenv("TORBOX_API_KEY", "env-key")
+    cfg = load_config(config_path=str(config_file), profile="work")
+    assert cfg["api_key"] == "env-key"
+    _clear_torbox_env()
+
+
+def test_cli_api_key_flag_uses_the_configured_base_url(
+    monkeypatch: Any, tmp_path: Path, httpx_mock: Any
+) -> None:
+    """End-to-end: `--api-key` no longer redirects traffic to the default host."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TORBOX_BASE_URL", "https://mirror.example/v1/api")
+    httpx_mock.add_response(
+        url=re.compile(r"https://mirror\.example/v1/api/torrents/mylist"),
+        json={"success": True, "data": []},
+    )
+
+    from typer.testing import CliRunner
+
+    from torbox.cli import app
+
+    result = CliRunner().invoke(
+        app, ["--api-key", "cli-key", "torrents", "list", "--json"], env={}
+    )
+
+    assert result.exit_code == 0, result.output
+    request = httpx_mock.get_requests()[0]
+    assert request.url.host == "mirror.example"
+    assert request.url.path == "/v1/api/torrents/mylist"
     _clear_torbox_env()

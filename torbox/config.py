@@ -112,12 +112,13 @@ def load_config(
         raise ConfigValidationError(f"Config file not found: {config_path}")
 
     if api_key_override:
+        # Highest-priority key value only: the override must not suppress the
+        # base url, timeout, retries, config file, or profile resolution below.
         config["api_key"] = api_key_override
-        return config
 
-    # 2. Env var
+    # 2. Env var (unless the CLI flag already won)
     env_key = os.getenv("TORBOX_API_KEY")
-    if env_key:
+    if env_key and not config["api_key"]:
         config["api_key"] = env_key
 
     # Load .env files (lower priority, do not override env var).
