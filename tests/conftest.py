@@ -27,7 +27,16 @@ def strip_ansi(text: str) -> str:
 
 
 _real_connect = socket.socket.connect
+_real_connect_ex = socket.socket.connect_ex
+_real_sendto = socket.socket.sendto
+# ``sendmsg`` is absent on some platforms (notably Windows).
+_real_sendmsg = getattr(socket.socket, "sendmsg", None)
 _attempts: list[str] = []
+
+_GUARD_MESSAGE = (
+    "Blocked real network connection to {address!r} during tests. "
+    "Mock the API with the httpx_mock fixture instead."
+)
 
 
 def _is_loopback(host: object) -> bool:
@@ -36,18 +45,56 @@ def _is_loopback(host: object) -> bool:
     )
 
 
-def _guarded_connect(self: socket.socket, address: Any) -> Any:
+def _guard_address(address: Any) -> None:
+    """Fail closed on any non-loopback address (issue #47).
+
+    ``connect`` is not the only way out: ``connect_ex`` returns an error code
+    instead of raising, and a datagram socket reaches the network through
+    ``sendto``/``sendmsg`` without ever connecting. Every primitive funnels
+    through here so the guard cannot be sidestepped by a raw-socket helper.
+    """
     host = address[0] if isinstance(address, (tuple, list)) else address
     if _is_loopback(host):
-        return _real_connect(self, address)
+        return
     _attempts.append(str(address))
-    raise RuntimeError(
-        f"Blocked real network connection to {address!r} during tests. "
-        "Mock the API with the httpx_mock fixture instead."
-    )
+    raise RuntimeError(_GUARD_MESSAGE.format(address=address))
+
+
+def _guarded_connect(self: socket.socket, address: Any) -> Any:
+    _guard_address(address)
+    return _real_connect(self, address)
+
+
+def _guarded_connect_ex(self: socket.socket, address: Any) -> Any:
+    _guard_address(address)
+    return _real_connect_ex(self, address)
+
+
+def _guarded_sendto(self: socket.socket, data: Any, *args: Any) -> Any:
+    # sendto(data, address) or sendto(data, flags, address).
+    if args:
+        _guard_address(args[-1])
+    return _real_sendto(self, data, *args)
+
+
+def _guarded_sendmsg(
+    self: socket.socket,
+    buffers: Any,
+    ancdata: Any = (),
+    flags: int = 0,
+    address: Any = None,
+) -> Any:
+    if address is not None:
+        _guard_address(address)
+    assert _real_sendmsg is not None
+    return _real_sendmsg(self, buffers, ancdata, flags, address)
 
 
 setattr(socket.socket, "connect", _guarded_connect)
+setattr(socket.socket, "connect_ex", _guarded_connect_ex)
+setattr(socket.socket, "sendto", _guarded_sendto)
+if _real_sendmsg is not None:
+    setattr(socket.socket, "sendmsg", _guarded_sendmsg)
 
 
 @pytest.fixture(autouse=True)
