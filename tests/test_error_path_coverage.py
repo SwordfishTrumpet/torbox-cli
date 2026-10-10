@@ -122,6 +122,30 @@ def test_queued_control_invalid_operation_rejected() -> None:
     assert "operation must be one of" in strip_ansi(result.output)
 
 
+def test_queued_control_accepts_operation_option(httpx_mock: Any) -> None:
+    """The --operation option works like the sibling control commands (#57)."""
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/queued/controlqueued",
+        json={"success": True, "data": None},
+    )
+    result = runner.invoke(
+        app,
+        ["queued", "control", "7", "--operation", "delete", "--yes"],
+        env=_ENV,
+    )
+    assert result.exit_code == 0
+    requests = httpx_mock.get_requests()
+    assert len(requests) == 1
+    assert json.loads(requests[0].content)["operation"] == "delete"
+
+
+def test_queued_control_requires_an_operation() -> None:
+    """Neither the option nor the positional word is a usage error, not a request."""
+    result = runner.invoke(app, ["queued", "control", "5", "--yes"], env=_ENV)
+    assert result.exit_code == 2
+    assert "--operation" in strip_ansi(result.output)
+
+
 # ---------------------------------------------------------------------------
 # vendors.py — account/register/refresh/remove/update human and dry-run paths
 # ---------------------------------------------------------------------------

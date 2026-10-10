@@ -6,6 +6,7 @@
 45	uv sync --frozen && uv run pytest tests/test_client.py::test_idempotency_key_on_timeout_retry_without_auto_retry -q --no-cov	0	reliability
 55	uv sync --frozen && uv run pytest tests/test_client.py::test_timeout_after_rate_limit_retry_is_not_reported_as_rate_limited -q --no-cov	0	reliability
 56	uv sync --frozen && uv run pytest tests/test_field_config.py::test_config_doctor_reports_the_cli_api_key -q --no-cov	0	correctness
+57	uv sync --frozen && uv run pytest tests/test_error_path_coverage.py -k queued_control -q --no-cov	0	usability
 46	! grep -q types-python-dateutil pyproject.toml && ! grep -rqE "def (parse_size|parse_date|is_valid_torrent_hash)" torbox/	0	dead-code
 47	uv sync --frozen && uv run pytest tests/test_network_guard.py -q --no-cov	0	testing
 48	uv sync --frozen && uv run pytest tests/test_ignore_rules.py -q --no-cov	0	build

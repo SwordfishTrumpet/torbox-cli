@@ -61,14 +61,20 @@ def list(
 @app.command(
     help=(
         "POST /queued/controlqueued — Control queued item\n\n"
-        "Example: torbox queued control 5 delete --yes"
+        "Example: torbox queued control 5 --operation delete --yes"
     ),
 )
 @handle_errors
 def control(
     ctx: Context,
     id: int,
-    operation: str = typer.Argument(..., help="delete | pause | resume"),
+    operation: str | None = typer.Argument(
+        None,
+        help="delete | pause | resume (positional form kept for compatibility)",
+    ),
+    operation_option: str | None = typer.Option(
+        None, "--operation", help="delete | pause | resume"
+    ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
     dry_run: bool = typer.Option(
@@ -79,7 +85,15 @@ def control(
     ),
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
-    operation = validate_operation(operation)
+    # The operation is accepted both ways: torrents, usenet and webdl control
+    # take it with --operation, and the positional word predates that. Prefer
+    # the option when both are given (issue #57).
+    selected = operation_option if operation_option is not None else operation
+    if selected is None:
+        raise typer.BadParameter(
+            "an operation is required: pass --operation delete|pause|resume"
+        )
+    operation = validate_operation(selected)
     if dry_run_guard(
         ctx,
         "POST /queued/controlqueued",
