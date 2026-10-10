@@ -24,7 +24,11 @@ jobs:
           python-version: "3.12"
 
       - name: Build wheel and sdist
-        run: uv build
+        run: |
+          uv build
+          # `uv build` seeds dist/ with a .gitignore; the release must not
+          # publish it (issue #53).
+          rm -f dist/.gitignore
 
       - name: Export pinned dependency requirements from lockfile
         run: uv export --frozen -o requirements.lock.txt
@@ -38,3 +42,8 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the release carries exactly the built artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: scripts/check_release_assets.sh "${GITHUB_REF_NAME}"
