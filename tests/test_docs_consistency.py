@@ -26,6 +26,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
+README = REPO_ROOT / "README.md"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 
@@ -86,3 +87,26 @@ def test_metadata_changelog_url_uses_the_default_branch() -> None:
         f"the metadata changelog url points at {match.group(1)}, which does not "
         f"resolve: this repository's default branch is {branch} (see issue #44)"
     )
+
+
+def test_readme_documents_rolling_back_a_release() -> None:
+    """A published release needs a documented withdrawal path (issue #52).
+
+    The release workflow only described publishing; a broken release left the
+    operator to improvise. The README section is the procedure, so a later edit
+    that drops or hollows it out fails here.
+    """
+    text = README.read_text(encoding="utf-8")
+    assert re.search(r"^#+ Rolling back a release$", text, re.MULTILINE), (
+        "README.md has no 'Rolling back a release' section, so a published "
+        "release cannot be withdrawn from the documented steps (issue #52)"
+    )
+    for command in (
+        "gh release delete",
+        "git push origin :refs/tags/",
+        "releases/latest",
+    ):
+        assert command in text, (
+            f"the rollback section no longer names `{command}`; the procedure "
+            "must stay runnable end to end (issue #52)"
+        )

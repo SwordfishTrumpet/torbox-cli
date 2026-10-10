@@ -480,6 +480,58 @@ torbox config doctor --json   # machine-readable output
 
 ---
 
+## Releasing
+
+Releases are cut by pushing a `v*` tag. The `Release` workflow builds the wheel,
+the source archive and a pinned `requirements.lock.txt`, then publishes them on
+the GitHub Releases page. Distribution is only through GitHub Releases.
+
+### Rolling back a release
+
+If a published release is broken, unsafe, or wrong, withdraw it and ship a
+superseding patch. A repository admin (write access is enough) can do this; no
+other permission is needed.
+
+1. **Withdraw the release page** so nobody installs it by accident:
+
+   ```bash
+   gh release delete v1.4.0 --yes          # remove the release page, keep the tag
+   gh release delete v1.4.0 --yes --cleanup-tag   # remove the release page and the tag
+   ```
+
+2. **Remove the tag** if you kept it and still want it gone (tags are immutable
+   history, so a released tag is never reused for a different commit):
+
+   ```bash
+   git tag -d v1.4.0
+   git push origin :refs/tags/v1.4.0
+   ```
+
+3. **Ship the fix as the next patch.** Land the correction on `master`, then tag
+   `v1.4.1` and push the tag. Never move or reuse the withdrawn tag.
+
+4. **Point users at the last good release while the fix is in flight.** Install a
+   specific tag instead of the default branch:
+
+   ```bash
+   pip install "git+https://github.com/SwordfishTrumpet/torbox-cli.git@v1.3.1"
+   uv tool install --from "git+https://github.com/SwordfishTrumpet/torbox-cli.git@v1.3.1" torbox-cli
+   ```
+
+5. **Confirm the withdrawal.** The deleted release must be gone and the latest
+   release must name the previous good tag (or the patch that supersedes it):
+
+   ```bash
+   gh release view v1.4.0                 # must fail: release not found
+   gh api repos/SwordfishTrumpet/torbox-cli/releases/latest --jq .tag_name
+   ```
+
+Withdrawing a release does not recall copies that people already downloaded, so
+the superseding patch is the only fix for an installed copy. Record the
+withdrawal in `CHANGELOG.md` under the next release.
+
+---
+
 ## Contributing
 
 1. Install dependencies:
