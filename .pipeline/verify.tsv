@@ -8,6 +8,7 @@
 56	uv sync --frozen && uv run pytest tests/test_field_config.py::test_config_doctor_reports_the_cli_api_key -q --no-cov	0	correctness
 57	uv sync --frozen && uv run pytest tests/test_error_path_coverage.py -k queued_control -q --no-cov	0	usability
 52	uv sync --frozen && uv run pytest tests/test_docs_consistency.py::test_readme_documents_rolling_back_a_release -q --no-cov	0	reliability
+53	uv sync --frozen && uv run pytest tests/test_release_assets.py -q --no-cov	0	deployment
 46	! grep -q types-python-dateutil pyproject.toml && ! grep -rqE "def (parse_size|parse_date|is_valid_torrent_hash)" torbox/	0	dead-code
 47	uv sync --frozen && uv run pytest tests/test_network_guard.py -q --no-cov	0	testing
 48	uv sync --frozen && uv run pytest tests/test_ignore_rules.py -q --no-cov	0	build
