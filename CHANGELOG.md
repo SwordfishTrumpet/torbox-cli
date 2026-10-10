@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-10
+
+### Added
+- `queued control` accepts `--operation delete|pause|resume`, the same option the `torrents`, `usenet` and `webdl` control commands already take. The positional word still works and the option wins when both are given, so no existing script breaks (closes #57).
+
+### Fixed
+- A request that times out after a rate limit is now reported as a network timeout instead of a rate limit (closes #55). The client kept the previous attempt's response across retries, so when an automatically retried request hit a 429 and the next attempt timed out, the command raised the rate-limit error (exit code 4) carrying the 429 body. Tooling that backs off on exit code 4 was waiting out a limit that had already cleared, and the message blamed the wrong failure.
+- `config doctor` now shows `--api-key` as the effective key (closes #56). The source list already reported the CLI flag as present, but the effective values were resolved without it, so `torbox --api-key ... config doctor` printed `api_key: null` beside a source line saying the flag was set.
+- Release pages no longer carry a `default.gitignore` download (closes #53). `uv build` writes a `.gitignore` into `dist/` and the release job uploaded the whole directory, so every release page offered that build file next to the wheel, the source archive and `requirements.lock.txt`. The workflow removes it before uploading and `scripts/check_release_assets.sh` fails the release job when the published assets are anything else.
+
+### Changed
+- The README documents how to withdraw a broken release: delete the release page, remove the tag, ship the fix as the next patch, and point users at the last good tag (closes #52).
+- `astral-sh/setup-uv` moved from v5 to v10.2.0 in all three workflow steps (Dependabot). The reference stays pinned to a commit sha and the uv binary it installs stays at 0.12.19, so `uv lock --check` is unaffected.
+
 ## [1.4.0] - 2026-09-27
 
 ### Removed
@@ -160,7 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ctrl-C graceful exit with POSIX exit code 130.
 - Missing `--field` paths return `null` and exit code 1.
 
-[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.4.0...HEAD
+[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.2.0...v1.3.0
