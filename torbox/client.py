@@ -144,6 +144,10 @@ class TorBoxClient:
         last_exception: Exception | None = None
         resp: httpx.Response | None = None
         for attempt in range(self.retries + 1):
+            # Each attempt starts with no response: a 429 that is auto-retried
+            # must not leave its response behind for the next attempt, or a
+            # timeout after it would be reported as a rate limit (#55).
+            resp = None
             if self.verbose:
                 self._check_rate_limit_warning(method, endpoint)
             try:

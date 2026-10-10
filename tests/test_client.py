@@ -8,8 +8,10 @@ from typing import Any
 from unittest.mock import patch
 
 import httpx
+import pytest
 
 from torbox.client import TorBoxClient
+from torbox.exceptions import ClientError
 
 
 def test_rate_limit_warning(httpx_mock: Any, capsys: Any) -> None:
@@ -74,6 +76,27 @@ def test_idempotency_key_on_timeout_retry_without_auto_retry(
     key2 = requests[1].headers["x-idempotency-key"]
     uuid.UUID(key1)
     assert key1 == key2
+
+
+def test_timeout_after_rate_limit_retry_is_not_reported_as_rate_limited(
+    httpx_mock: Any,
+) -> None:
+    """A timeout after a rate-limited retry must not reuse the old response (#55).
+
+    ``_execute`` kept the 429 response in a variable shared across attempts,
+    so when the auto-retry after it timed out the post-loop branch read the
+    stale response and raised ``RateLimitError`` (exit code 4) carrying the
+    earlier body, instead of reporting the network failure.
+    """
+    url = "https://api.torbox.app/v1/api/torrents/mylist"
+    httpx_mock.add_response(url=url, status_code=429, headers={"Retry-After": "0"})
+    httpx_mock.add_exception(httpx.ReadTimeout("timed out"))
+    client = TorBoxClient(api_key="dummy", auto_retry=True)
+    client.retries = 1
+    with patch("torbox.client.time.sleep"):
+        with pytest.raises(ClientError, match="Request failed after 2 attempts"):
+            client.get("/torrents/mylist")
+    assert len(httpx_mock.get_requests()) == 2
 
 
 def test_no_idempotency_key_when_retries_disabled(httpx_mock: Any) -> None:
