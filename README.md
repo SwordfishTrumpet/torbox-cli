@@ -338,7 +338,7 @@ torbox nntp reset-password
 # Manage queued downloads
 # (queued items are created with --as-queued on the create endpoints)
 torbox queued list
-torbox queued control 5 delete --yes
+torbox queued control 5 --operation delete --yes
 
 # Manage notifications
 torbox notifications list
