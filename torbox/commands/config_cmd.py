@@ -100,11 +100,18 @@ def doctor(
     """Show how configuration is resolved and what the effective values are."""
     config_path = ctx.obj.get("config") if ctx.obj else None
     profile = ctx.obj.get("profile") if ctx.obj else None
-    cfg = load_config(config_path=config_path, profile=profile)
+    # The CLI --api-key flag is the highest-priority source, so it is passed to
+    # load_config: otherwise the effective values disagree with the source list,
+    # which reports the flag as present (issue #56).
+    api_key_override = ctx.obj.get("api_key") if ctx.obj else None
+    cfg = load_config(
+        api_key_override=api_key_override,
+        config_path=config_path,
+        profile=profile,
+    )
     sources = _resolve_config_sources(config_path)
 
     # Mark CLI override if present
-    api_key_override = ctx.obj.get("api_key") if ctx.obj else None
     if api_key_override:
         sources[0]["present"] = True
         sources[0]["value"] = "***"

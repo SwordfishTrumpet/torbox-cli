@@ -214,6 +214,33 @@ def test_config_doctor_shows_profile() -> None:
     _clear_torbox_env()
 
 
+def test_config_doctor_reports_the_cli_api_key(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """A key supplied with --api-key must show as effective, not as null (#56).
+
+    ``config doctor`` is the documented way to see which sign-in source is
+    active, so the source list and the effective values must agree.
+    """
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)  # no CWD .env
+    monkeypatch.setenv("HOME", str(tmp_path))  # no home-directory config files
+
+    from typer.testing import CliRunner
+
+    from torbox.cli import app
+
+    result = CliRunner().invoke(
+        app, ["--api-key", "cli-key", "config", "doctor", "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data["data"]["sources"][0]["source"] == "CLI --api-key"
+    assert data["data"]["sources"][0]["present"] is True
+    assert data["data"]["effective"]["api_key"] == "***"
+    _clear_torbox_env()
+
+
 # ---------------------------------------------------------------------------
 # CLI --api-key override: it wins for the key only (issue #38)
 # ---------------------------------------------------------------------------
