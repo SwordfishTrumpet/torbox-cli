@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-19
+
+### Added
+- `--no-airlocked` on `torrents edit`, `usenet edit` and `webdl edit`, so a file in permanent storage can be released again (closes #72). The option only had the positive spelling, so typer never accepted a negative one and the handler's `airlocked is False` branch was unreachable: a download could be locked into AirLock and kept consuming the plan's quota with no way to stop it from the CLI. Neither flag leaves the key out of the request, so an edit that does not mention Airlock cannot change it.
+- `npm run check` runs every check CI runs — `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy --strict torbox` and `uv run pytest` — and the quality gate can read them (closes #86). The commands existed only inside `.github/workflows/ci.yml` and in prose, so a tool had nothing to run and a contributor had no single command that matched CI. `package.json` and `package-lock.json` only name the commands (npm is a task runner here; there is no JavaScript), CI gained the ruff format check the local command runs, and `tests/test_check_entry_point.py` fails when the two lists drift apart.
+
+### Changed
+- A config file with several INI profiles now contributes only the section you select, and `[default]` applies when you pass no `--profile` (closes #63). Keys written before the first section header are read as `[default]`, so a file that mixes flat keys with profiles keeps them. See the Security entry below for what this fixes.
+- A profile is once again the lowest-priority source for every setting: an exported `TORBOX_BASE_URL`, `TORBOX_TIMEOUT` or `TORBOX_RETRIES` wins over the profile's value instead of being overwritten by it (closes #70).
+- `.gitignore` covers `.pipeline/*`, so a blanket `git add -A` can no longer stage the pipeline's probe scripts and evidence captures; the tracked `.pipeline/verify.tsv` registry stays visible (closes #85).
+- The release job installs the built wheel in a fresh venv and runs `torbox --version` and `torbox general --help` before it publishes, and deletes the release it created when the asset check fails, keeping the tag (closes #65). The job previously checked only asset file names, so a revision CI would have rejected could become `releases/latest` and users would install a CLI that cannot start.
+- `astral-sh/setup-uv` moved to v10.3.3 and `softprops/action-gh-release` to v3.0.4 in the workflows (Dependabot). Every reference stays pinned to a commit sha, and the uv binary stays at 0.12.19, so `uv lock --check` is unaffected.
+- `certifi` is floored at 2026.10.19 (`PYSEC-2026-4320`) in `[tool.uv] constraint-dependencies` and locked at 2026.10.23, alongside a `typer` and `ruff` refresh; CI gained a `pip-audit` job over `uv export --frozen` so a locked advisory is caught without waiting for a schedule.
+
+### Fixed
+- A `--field` path the response does not carry no longer turns a completed write into a failure (closes #64). The envelope was printed after the request had gone out, and a missing path exited 1, so automation that retries on a nonzero exit wrote a second time — 39 mutating commands were affected, from torrents and usenet creates to notification tests and integration uploads. A miss after a mutation now prints `null`, warns on stderr and exits 0; a read that asked for a field it did not get still exits 1.
+- `webdl edit` and `usenet edit` send an explicitly empty `--tags`, `--alternative-hashes` or `--name` instead of dropping it (closes #71). Their guards tested truthiness, so clearing tags reported success while the old tags stayed on the download and tag-based automation kept acting on stale metadata; all three edit commands now agree.
+- `user transactions` shows the payment id and date (closes #69). The table asked for `transaction_id` and `at` while the API returns `id` and `created_at`, so both cells were blank in human output.
+- The monitor reports Usenet and WebDL downloads with their real state (closes #66). Those list endpoints report `download_state`, not `status`, so every such row rendered as UN, was left out of the Active count and could not be found with a status filter.
+- The monitor's header counts describe the rows on screen when `--filter` is used (closes #67). Active and Items counted every fetched row while the DL total counted only visible rows, and each section header counted visible rows: three populations on one screen.
+- Sorting the monitor by status places metadata-fetching downloads at their declared rank, before seeding and paused (closes #68), instead of last. The order map kept the camel-case `metaDL` key while the lookup lowercased the item status, so the lookup always missed.
+
+### Security
+- Choosing a profile no longer sends another account's API key (closes #63). A config file with several profiles was read twice: once as a flat `key=value` file, where python-dotenv ignores section headers and keeps the last duplicate key, and again as INI. The flat read won, so every command — including creates and deletes — acted on the account in the file's last section while reporting success, and `[default]` never supplied its own key. A file with section headers is now detected before the merge and only the selected section is read.
+
 ## [1.5.0] - 2026-10-10
 
 ### Added
@@ -174,7 +199,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ctrl-C graceful exit with POSIX exit code 130.
 - Missing `--field` paths return `null` and exit code 1.
 
-[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.5.0...HEAD
+[unreleased]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/SwordfishTrumpet/torbox-cli/compare/v1.3.0...v1.3.1
