@@ -349,3 +349,84 @@ def test_cli_help() -> None:
     assert "interval" in result.output
     assert "sort" in result.output
     assert "filter" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Usenet and WebDL report `download_state`, not `status` (issue #66)
+# ---------------------------------------------------------------------------
+
+
+class TestDownloadStateAlias:
+    def test_download_state_becomes_status(self) -> None:
+        items = _normalize_items(
+            {"data": [{"id": 1, "name": "n", "download_state": "downloading"}]},
+            "usenet",
+        )
+        assert items[0]["status"] == "downloading"
+
+    def test_status_still_wins_when_both_are_present(self) -> None:
+        items = _normalize_items(
+            {"data": [{"id": 1, "status": "seeding", "download_state": "downloading"}]},
+            "torrents",
+        )
+        assert items[0]["status"] == "seeding"
+
+    def test_missing_both_is_unknown(self) -> None:
+        items = _normalize_items({"data": [{"id": 1}]}, "usenet")
+        assert items[0]["status"] == "unknown"
+
+
+# ---------------------------------------------------------------------------
+# metaDL sorts at its declared rank (issue #68)
+# ---------------------------------------------------------------------------
+
+
+class TestSortKeyMetaDL:
+    def test_metadl_sorts_before_seeding_and_paused(self) -> None:
+        items = [
+            {"id": 1, "status": "paused"},
+            {"id": 2, "status": "seeding"},
+            {"id": 3, "status": "metaDL"},
+        ]
+        ordered = sorted(items, key=lambda i: _sort_key(i, "status"))
+        assert [i["status"] for i in ordered] == ["metaDL", "seeding", "paused"]
+
+
+# ---------------------------------------------------------------------------
+# A filtered monitor describes the rows it shows (issue #67)
+# ---------------------------------------------------------------------------
+
+
+class TestFilteredHeaderPopulation:
+    def test_counts_and_speed_use_the_filtered_rows(self, httpx_mock: Any) -> None:
+        _mock_all(
+            httpx_mock,
+            torrents={
+                "success": True,
+                "data": [
+                    {
+                        "id": 1,
+                        "name": "alpha",
+                        "status": "downloading",
+                        "size": 1000,
+                        "progress": 10.0,
+                        "download_speed": 100,
+                    },
+                    {
+                        "id": 2,
+                        "name": "beta",
+                        "status": "downloading",
+                        "size": 1000,
+                        "progress": 10.0,
+                        "download_speed": 200,
+                    },
+                ],
+            },
+        )
+        state = MonitorState(_make_client())
+        state.filter_text = "alpha"
+        state.refresh()
+        assert state.total_count == 1
+        assert state.active_count == 1
+        visible_speed = sum(i.get("_speed", 0) for i in state.torrents)
+        assert visible_speed == 100

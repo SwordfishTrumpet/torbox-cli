@@ -105,7 +105,7 @@ def _sort_key(item: dict[str, Any], sort_by: str) -> tuple[Any, ...]:
     status_order = {
         "downloading": 0,
         "uploading": 1,
-        "metaDL": 2,
+        "metadl": 2,
         "seeding": 3,
         "paused": 4,
         "waiting": 5,
@@ -148,7 +148,12 @@ def _normalize_items(data: Any, item_type: str) -> list[dict[str, Any]]:
                 "id": item.get("id"),
                 "name": item.get("name", "") or "",
                 "type": item_type,
-                "status": item.get("status", "unknown") or "unknown",
+                # Usenet and WebDL list items report `download_state`; torrents
+                # report `status`. Either spelling feeds the badge, the
+                # active count and the status filter (#66).
+                "status": (
+                    item.get("status") or item.get("download_state") or "unknown"
+                ),
                 "size": size,
                 "downloaded": item.get("downloaded"),
                 "progress": progress,
@@ -347,10 +352,18 @@ class MonitorState:
             items = getattr(self, cat)
             items.sort(key=lambda i, s=self.sort_by: _sort_key(i, s))
 
+        # The header describes the rows on screen. Counting all_items before the
+        # filter made the top counts global while the DL total and every section
+        # header counted only visible rows (#67).
+        visible = [
+            item
+            for cat in ("torrents", "usenet", "webdl", "queued")
+            for item in getattr(self, cat)
+        ]
         self.active_count = sum(
-            1 for i in all_items if (i.get("status") or "").lower() == "downloading"
+            1 for i in visible if (i.get("status") or "").lower() == "downloading"
         )
-        self.total_count = len(all_items)
+        self.total_count = len(visible)
 
     def _fetch(self, endpoint: str, params: dict[str, str | int]) -> dict[str, Any]:
         return self.client.get(endpoint, params=params)
