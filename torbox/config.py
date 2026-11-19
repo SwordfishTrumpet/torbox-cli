@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import configparser
 import os
+import re
 import stat
 import warnings
 from pathlib import Path
@@ -65,24 +66,68 @@ def _validate_retries(value: int) -> int:
     return value
 
 
+_INI_SECTION_RE = re.compile(r"^\s*\[[^\]]+\]\s*$")
+
+
+def _is_ini_file(path: Path) -> bool:
+    """Return True when the file carries INI section headers.
+
+    Such a file holds *profiles*, not flat key=value settings, and must not
+    be read with ``dotenv_values``: python-dotenv ignores section headers and
+    keeps only the last duplicate key in the file, so every section's
+    ``TORBOX_API_KEY`` collapses onto the final section's value (#63).
+    """
+    try:
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                stripped = line.lstrip()
+                if stripped.startswith(("#", ";")):
+                    continue
+                if _INI_SECTION_RE.match(line):
+                    return True
+    except OSError:
+        return False
+    return False
+
+
 def _load_ini_profile(path: Path, profile: str) -> dict[str, str]:
     """Load a specific profile section from an INI-style config file.
 
-    Returns a dict of key-value pairs for the profile, or an empty dict
-    if the file or profile does not exist, or if the file is not a valid
-    INI file (e.g. a plain .env key=value file without section headers).
+    Returns a dict of key-value pairs for the profile, or an empty dict if the
+    file or the profile does not exist.
+
+    Keys written before the first section header are read as ``[default]``,
+    which is how configparser treats them once the header is supplied: a file
+    that mixes flat keys with profiles keeps its flat keys instead of losing
+    them silently (#63).
     """
     if not path.exists():
         return {}
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {}
+    if _has_preamble_keys(text):
+        text = "[default]\n" + text
     parser = configparser.ConfigParser()
     try:
-        parser.read(path, encoding="utf-8")
-    except configparser.MissingSectionHeaderError:
-        # File is not an INI file (e.g. plain .env key=value), skip gracefully
+        parser.read_string(text, source=str(path))
+    except configparser.Error:
+        # A malformed section layout is not a usable profile source.
         return {}
     if parser.has_section(profile):
         return dict(parser.items(profile))
     return {}
+
+
+def _has_preamble_keys(text: str) -> bool:
+    """Return True when key=value lines precede the first section header."""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("#", ";")):
+            continue
+        return not _INI_SECTION_RE.match(line)
+    return False
 
 
 def load_config(
@@ -99,7 +144,10 @@ def load_config(
     4. ~/.config/torbox-cli/config.env
     5. ~/.torbox-cli.env (legacy)
     6. Optional custom --config file (loaded alongside hierarchy)
-    7. Profile-specific settings from INI-style config (lowest priority)
+    7. Profile-specific settings from INI-style config (lowest priority).
+       A file with section headers supplies only the selected section, or
+       ``[default]`` when no ``--profile`` is given; its other sections are
+       never read.
     """
     config: dict[str, Any] = {
         "api_key": None,
@@ -134,6 +182,11 @@ def load_config(
     for dotenv_path in dotenv_paths:
         if dotenv_path and dotenv_path.exists():
             _check_file_permissions(dotenv_path)
+            # A profile INI file is not a .env file: it contributes only the
+            # selected section below, so other sections can never decide the
+            # key or base url (#63).
+            if _is_ini_file(dotenv_path):
+                continue
             values = dotenv_values(dotenv_path)
             # Merge with lower priority — don't override already-seen keys
             for k, v in values.items():
@@ -144,9 +197,14 @@ def load_config(
     if not config["api_key"]:
         config["api_key"] = dotenv_merged.get("TORBOX_API_KEY")
 
+    # Which settings a higher-priority source already decided. A profile is the
+    # lowest-priority source, so it fills only what is still unset (#70).
+    resolved_above_profile: set[str] = set()
+
     # Other settings: env var wins, then dotenv, then default
     if base := (os.getenv("TORBOX_BASE_URL") or dotenv_merged.get("TORBOX_BASE_URL")):
         config["base_url"] = base
+        resolved_above_profile.add("base_url")
     if timeout_str := (
         os.getenv("TORBOX_TIMEOUT") or dotenv_merged.get("TORBOX_TIMEOUT")
     ):
@@ -158,6 +216,7 @@ def load_config(
             raise ConfigValidationError(
                 f"TORBOX_TIMEOUT must be an integer, got {timeout_str!r}"
             ) from exc
+        resolved_above_profile.add("timeout")
     if retries_str := (
         os.getenv("TORBOX_RETRIES") or dotenv_merged.get("TORBOX_RETRIES")
     ):
@@ -169,37 +228,48 @@ def load_config(
             raise ConfigValidationError(
                 f"TORBOX_RETRIES must be an integer, got {retries_str!r}"
             ) from exc
+        resolved_above_profile.add("retries")
 
-    # 7. Profile-specific settings from INI-style config (lowest priority)
-    if profile:
-        for cfg_path in dotenv_paths:
-            if cfg_path and cfg_path.exists():
-                profile_values = _load_ini_profile(cfg_path, profile)
-                if profile_values:
-                    if not config["api_key"] and profile_values.get("torbox_api_key"):
-                        config["api_key"] = profile_values["torbox_api_key"]
-                    if profile_values.get("torbox_base_url"):
-                        config["base_url"] = profile_values["torbox_base_url"]
-                    if profile_values.get("torbox_timeout"):
-                        try:
-                            config["timeout"] = _validate_timeout(
-                                int(profile_values["torbox_timeout"])
-                            )
-                        except ValueError as exc:
-                            raise ConfigValidationError(
-                                "TORBOX_TIMEOUT must be an integer, got "
-                                f"{profile_values['torbox_timeout']!r}"
-                            ) from exc
-                    if profile_values.get("torbox_retries"):
-                        try:
-                            config["retries"] = _validate_retries(
-                                int(profile_values["torbox_retries"])
-                            )
-                        except ValueError as exc:
-                            raise ConfigValidationError(
-                                "TORBOX_RETRIES must be an integer, got "
-                                f"{profile_values['torbox_retries']!r}"
-                            ) from exc
-                    break
+    # 7. Profile-specific settings from INI-style config (lowest priority).
+    # Without --profile the documented [default] section applies, so a file
+    # that defines profiles still supplies one of them (#63).
+    section = profile or "default"
+    for cfg_path in dotenv_paths:
+        if not cfg_path or not cfg_path.exists():
+            continue
+        profile_values = _load_ini_profile(cfg_path, section)
+        if not profile_values:
+            continue
+        if not config["api_key"] and profile_values.get("torbox_api_key"):
+            config["api_key"] = profile_values["torbox_api_key"]
+        if "base_url" not in resolved_above_profile and profile_values.get(
+            "torbox_base_url"
+        ):
+            config["base_url"] = profile_values["torbox_base_url"]
+        if "timeout" not in resolved_above_profile and profile_values.get(
+            "torbox_timeout"
+        ):
+            try:
+                config["timeout"] = _validate_timeout(
+                    int(profile_values["torbox_timeout"])
+                )
+            except ValueError as exc:
+                raise ConfigValidationError(
+                    "TORBOX_TIMEOUT must be an integer, got "
+                    f"{profile_values['torbox_timeout']!r}"
+                ) from exc
+        if "retries" not in resolved_above_profile and profile_values.get(
+            "torbox_retries"
+        ):
+            try:
+                config["retries"] = _validate_retries(
+                    int(profile_values["torbox_retries"])
+                )
+            except ValueError as exc:
+                raise ConfigValidationError(
+                    "TORBOX_RETRIES must be an integer, got "
+                    f"{profile_values['torbox_retries']!r}"
+                ) from exc
+        break
 
     return config
