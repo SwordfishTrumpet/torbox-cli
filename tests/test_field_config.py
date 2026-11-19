@@ -335,3 +335,151 @@ def test_cli_api_key_flag_uses_the_configured_base_url(
     assert request.url.host == "mirror.example"
     assert request.url.path == "/v1/api/torrents/mylist"
     _clear_torbox_env()
+
+
+# ---------------------------------------------------------------------------
+# An INI profile file is never read as a flat dotenv file (issue #63)
+# ---------------------------------------------------------------------------
+
+_PROFILES = (
+    "[default]\n"
+    "TORBOX_API_KEY = probe-default-key\n"
+    "TORBOX_BASE_URL = http://127.0.0.1:9/default\n"
+    "[home]\n"
+    "TORBOX_API_KEY = probe-home-key\n"
+    "TORBOX_BASE_URL = http://127.0.0.1:9/home\n"
+    "[work]\n"
+    "TORBOX_API_KEY = probe-work-key\n"
+    "TORBOX_BASE_URL = http://127.0.0.1:9/work\n"
+)
+
+
+def test_ini_file_is_not_merged_as_flat_dotenv(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Only the selected section supplies the key, never the file's last one."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "profiles.env"
+    config_file.write_text(_PROFILES, encoding="utf-8")
+    config_file.chmod(0o600)
+
+    cfg = load_config(config_path=str(config_file), profile="home")
+
+    assert cfg["api_key"] == "probe-home-key"
+    assert cfg["base_url"] == "http://127.0.0.1:9/home"
+    _clear_torbox_env()
+
+
+def test_no_profile_uses_the_documented_default_section(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Without --profile the [default] section applies, not the last section."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "profiles.env"
+    config_file.write_text(_PROFILES, encoding="utf-8")
+    config_file.chmod(0o600)
+
+    cfg = load_config(config_path=str(config_file))
+
+    assert cfg["api_key"] == "probe-default-key"
+    assert cfg["base_url"] == "http://127.0.0.1:9/default"
+    _clear_torbox_env()
+
+
+def test_plain_dotenv_file_still_supplies_the_key(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """The section detection must not stop plain .env files being read."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "plain.env"
+    config_file.write_text("TORBOX_API_KEY=plain-key\n", encoding="utf-8")
+    config_file.chmod(0o600)
+
+    cfg = load_config(config_path=str(config_file))
+
+    assert cfg["api_key"] == "plain-key"
+    _clear_torbox_env()
+
+
+# ---------------------------------------------------------------------------
+# A profile is the lowest-priority source for every setting (issue #70)
+# ---------------------------------------------------------------------------
+
+
+def test_environment_settings_win_over_a_profile(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Exported TORBOX_* values must survive --profile, not be replaced by it."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "config.env"
+    config_file.write_text(
+        "[work]\n"
+        "TORBOX_API_KEY=profile-key\n"
+        "TORBOX_BASE_URL=https://profile.example/v1/api\n"
+        "TORBOX_TIMEOUT=45\n"
+        "TORBOX_RETRIES=9\n",
+        encoding="utf-8",
+    )
+    config_file.chmod(0o600)
+    monkeypatch.setenv("TORBOX_BASE_URL", "https://env.example/v1/api")
+    monkeypatch.setenv("TORBOX_TIMEOUT", "77")
+    monkeypatch.setenv("TORBOX_RETRIES", "2")
+
+    cfg = load_config(config_path=str(config_file), profile="work")
+
+    assert cfg["base_url"] == "https://env.example/v1/api"
+    assert cfg["timeout"] == 77
+    assert cfg["retries"] == 2
+    _clear_torbox_env()
+
+
+def test_profile_still_supplies_settings_the_environment_leaves_unset(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "config.env"
+    config_file.write_text(
+        "[work]\nTORBOX_BASE_URL=https://profile.example/v1/api\n"
+        "TORBOX_TIMEOUT=45\nTORBOX_RETRIES=9\n",
+        encoding="utf-8",
+    )
+    config_file.chmod(0o600)
+
+    cfg = load_config(config_path=str(config_file), profile="work")
+
+    assert cfg["base_url"] == "https://profile.example/v1/api"
+    assert cfg["timeout"] == 45
+    assert cfg["retries"] == 9
+    _clear_torbox_env()
+
+
+def test_flat_keys_before_the_first_section_still_apply(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """A file that mixes flat keys with profiles keeps its flat keys (#63)."""
+    _clear_torbox_env()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_file = tmp_path / "mixed.env"
+    config_file.write_text(
+        "TORBOX_API_KEY = top-level\n[work]\nTORBOX_API_KEY = work-key\n",
+        encoding="utf-8",
+    )
+    config_file.chmod(0o600)
+
+    assert load_config(config_path=str(config_file))["api_key"] == "top-level"
+    assert (
+        load_config(config_path=str(config_file), profile="work")["api_key"]
+        == "work-key"
+    )
+    _clear_torbox_env()

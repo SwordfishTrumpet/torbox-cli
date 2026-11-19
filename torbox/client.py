@@ -29,6 +29,11 @@ class TorBoxClient:
     }
     _DEFAULT_RATE_LIMIT = 300
     _DEFAULT_RATE_WINDOW = 60
+    # Endpoints that change server-side state over a safe HTTP method. The
+    # method alone cannot decide whether a request was a mutation, and a
+    # caller whose `--field` misses must not be told the command failed after
+    # the change already landed (#64).
+    _MUTATING_SAFE_ENDPOINTS: frozenset[str] = frozenset({"/stream/createstream"})
     # Defense in depth: never keep more than this many timestamps per
     # endpoint even if a client runs for weeks (e.g. the monitor TUI polls
     # several endpoints once per second).
@@ -55,6 +60,8 @@ class TorBoxClient:
         self.auto_retry = auto_retry
         self._request_log: dict[str, list[float]] = {}
         self._last_request_duration_ms: float = 0.0
+        self._last_request_method: str | None = None
+        self._last_request_endpoint: str | None = None
         self.client = httpx.Client(
             base_url=self.base_url,
             timeout=self.timeout,
@@ -65,6 +72,22 @@ class TorBoxClient:
     def last_request_duration_ms(self) -> float:
         """Return the duration (ms) of the most recent request."""
         return self._last_request_duration_ms
+
+    @property
+    def last_request_mutates(self) -> bool:
+        """Return True when the most recent request changed server-side state.
+
+        True for POST/PUT/PATCH/DELETE, and for the few documented endpoints
+        that mutate over GET. Used to decide whether a `--field` extraction
+        failure may still fail the command: once a mutation has been sent, the
+        write is committed and a nonzero exit would invite a duplicate on
+        retry (#64).
+        """
+        method = self._last_request_method
+        if method is not None and method.upper() in {"POST", "PUT", "PATCH", "DELETE"}:
+            return True
+        endpoint = self._last_request_endpoint
+        return endpoint is not None and endpoint in self._MUTATING_SAFE_ENDPOINTS
 
     @overload
     def _execute(
@@ -200,6 +223,8 @@ class TorBoxClient:
 
         duration = (time.perf_counter() - start) * 1000
         self._last_request_duration_ms = duration
+        self._last_request_method = method
+        self._last_request_endpoint = endpoint
         if self.verbose:
             if resp is not None:
                 print(

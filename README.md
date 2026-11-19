@@ -212,6 +212,12 @@ torbox --config /path/to/custom.env torrents list  # Custom config file
 reused across every attempt of one logical operation, so a create, update or
 delete that timed out after the server accepted it is not applied twice.
 
+If `--field` names a path the response does not carry, the command prints
+`null`. A read exits 1, because the field you asked for is not there. A
+command that already changed something on the server (a create, an edit, a
+delete, or a stream token) prints a warning on stderr and still exits 0, so
+retry logic cannot apply the change twice.
+
 ### Common Workflows
 
 ```bash
@@ -400,6 +406,15 @@ torbox --profile work --field data torrents list --json
 ```
 
 Profiles support all config keys: `TORBOX_API_KEY`, `TORBOX_BASE_URL`, `TORBOX_TIMEOUT`, `TORBOX_RETRIES`.
+
+Only the section you select is read. With no `--profile` the `[default]`
+section applies, and other sections never contribute a key or a base URL. Keys
+written before the first section header are read as `[default]`, so a file that
+mixes flat keys with profiles keeps its flat keys.
+
+A profile is the lowest-priority source: an exported `TORBOX_API_KEY`,
+`TORBOX_BASE_URL`, `TORBOX_TIMEOUT` or `TORBOX_RETRIES` still wins over the
+profile's value for that key.
 
 ### Live Monitor (`monitor`)
 
