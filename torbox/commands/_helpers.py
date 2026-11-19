@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any, cast
 
 import typer
@@ -269,8 +270,10 @@ def print_json_envelope(
 ) -> None:
     """Print API data wrapped in normalized JSON envelope.
 
-    Respects --field and --compact. Raises typer.Exit(code=1) if
-    --field path is missing.
+    Respects --field and --compact. Raises typer.Exit(code=1) when a
+    --field path is missing from a read-only response. When the response
+    follows a mutating request the write is already committed, so a missing
+    field only warns on stderr and the command still exits 0 (#64).
 
     If ``duration_ms`` is 0.0 (the default), the method will attempt to
     read the actual request duration from the cached client on
@@ -282,11 +285,23 @@ def print_json_envelope(
     verbose = _is_verbose(ctx)
     if not use_json and not fld:
         return
-    if not duration_ms and ctx.obj is not None:
-        cached_client: TorBoxClient | None = ctx.obj.get(_CLIENT_ATTR)
-        if cached_client is not None:
-            duration_ms = cached_client.last_request_duration_ms
+    cached_client: TorBoxClient | None = (
+        ctx.obj.get(_CLIENT_ATTR) if ctx.obj is not None else None
+    )
+    if not duration_ms and cached_client is not None:
+        duration_ms = cached_client.last_request_duration_ms
     envelope = format_envelope(data, command, duration_ms=duration_ms)
     ok = print_json(envelope, field=fld, compact=compact, verbose=verbose)
     if not ok:
+        # The requested path is absent. For a read that is a usage error. For a
+        # mutation the write is already committed, so a nonzero exit would make
+        # retrying scripts write twice (#64): report the miss on stderr and
+        # keep the exit status a success.
+        if cached_client is not None and cached_client.last_request_mutates:
+            print(
+                f"[warn] --field {fld!r} was not in the response; "
+                f"{command} was already applied server-side, so exiting 0",
+                file=sys.stderr,
+            )
+            return
         raise typer.Exit(code=1)
