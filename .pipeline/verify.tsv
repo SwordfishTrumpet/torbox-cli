@@ -20,3 +20,7 @@
 69	uv sync --frozen && uv run pytest tests/test_list_columns.py::test_user_transactions_renders_the_identifier_and_date -q --no-cov	0	correctness
 85	git check-ignore -q .pipeline/evidence	0	build
 86	uv sync --frozen && uv run pytest tests/test_check_entry_point.py -q --no-cov	0	build
+63	uv sync --frozen && uv run pytest tests/test_field_config.py -k "ini_file or default_section or plain_dotenv or preamble" -q --no-cov	0	security
+70	uv sync --frozen && uv run pytest tests/test_field_config.py -k "environment_settings or profile_still_supplies" -q --no-cov	0	domain
+64	uv sync --frozen && uv run pytest tests/test_field_after_mutation.py -q --no-cov	0	correctness
+65	uv sync --frozen && uv run pytest tests/test_release_workflow.py -q --no-cov	0	deployment
