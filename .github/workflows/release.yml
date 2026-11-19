@@ -33,6 +33,17 @@ jobs:
       - name: Export pinned dependency requirements from lockfile
         run: uv export --frozen -o requirements.lock.txt
 
+      # Publish is irreversible in practice (the release page becomes
+      # releases/latest), so the artifact is installed and run before it ships.
+      # A wheel whose console script cannot start fails here, not on a user's
+      # machine (#65).
+      - name: Smoke install the built wheel before publishing
+        run: |
+          uv venv --clear /tmp/release-smoke
+          uv pip install --python /tmp/release-smoke/bin/python dist/torbox_cli-*.whl
+          /tmp/release-smoke/bin/torbox --version
+          /tmp/release-smoke/bin/torbox general --help
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3  # v3
         with:
@@ -46,4 +57,13 @@ jobs:
       - name: Verify the release carries exactly the built artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: scripts/check_release_assets.sh "${GITHUB_REF_NAME}"
+        run: |
+          if scripts/check_release_assets.sh "${GITHUB_REF_NAME}"; then
+            exit 0
+          fi
+          # A release page that is already live must not stay live after its
+          # own asset check fails (#65). The tag is kept so the release can be
+          # recreated once the cause is fixed.
+          gh release delete "${GITHUB_REF_NAME}" --yes || true
+          echo "::error::asset check failed; release ${GITHUB_REF_NAME} deleted, the tag was kept"
+          exit 1
