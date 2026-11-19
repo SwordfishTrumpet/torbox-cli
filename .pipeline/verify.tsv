@@ -12,3 +12,11 @@
 46	! grep -q types-python-dateutil pyproject.toml && ! grep -rqE "def (parse_size|parse_date|is_valid_torrent_hash)" torbox/	0	dead-code
 47	uv sync --frozen && uv run pytest tests/test_network_guard.py -q --no-cov	0	testing
 48	uv sync --frozen && uv run pytest tests/test_ignore_rules.py -q --no-cov	0	build
+71	uv sync --frozen && uv run pytest tests/test_edit_tags.py -k "empty" -q --no-cov	0	correctness
+72	uv sync --frozen && uv run pytest tests/test_edit_tags.py -k "airlocked" -q --no-cov	0	correctness
+66	uv sync --frozen && uv run pytest tests/test_monitor.py -k download_state -q --no-cov	0	correctness
+67	uv sync --frozen && uv run pytest tests/test_monitor.py -k filtered_header -q --no-cov	0	correctness
+68	uv sync --frozen && uv run pytest tests/test_monitor.py -k metadl -q --no-cov	0	correctness
+69	uv sync --frozen && uv run pytest tests/test_list_columns.py::test_user_transactions_renders_the_identifier_and_date -q --no-cov	0	correctness
+85	git check-ignore -q .pipeline/evidence	0	build
+86	uv sync --frozen && uv run pytest tests/test_check_entry_point.py -q --no-cov	0	build

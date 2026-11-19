@@ -555,16 +555,18 @@ withdrawal in `CHANGELOG.md` under the next release.
 
 4. Add tests in `tests/test_<group>.py`.
 
-5. Run the linter and type checker:
+5. Run every check CI runs with one command:
    ```bash
-   uv run ruff check torbox/ tests/
-   uv run mypy --strict torbox/
+   npm run check
    ```
-
-6. Run the test suite (coverage threshold: 65%):
-   ```bash
-   uv run pytest tests/
-   ```
+   `package.json` only names the commands (no JavaScript is involved): it runs
+   `uv run ruff check .`, `uv run ruff format --check .`,
+   `uv run mypy --strict torbox` and `uv run pytest`, the same four steps
+   `.github/workflows/ci.yml` runs. `npm run lint`, `npm run typecheck` and
+   `npm test` run them one at a time, and `npm run test:fast` skips coverage.
+   The pipeline's quality gate reads these scripts, so a command added to CI
+   belongs in `package.json` too — `tests/test_check_entry_point.py` fails
+   when they drift apart.
 
 ---
 

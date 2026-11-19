@@ -101,8 +101,8 @@ CASES: list[tuple[str, Any, list[str], str, list[str], list[str]]] = [
         user_mod,
         ["user", "transactions"],
         f"{DEFAULT_BASE_URL}/user/transactions?offset=0&limit=1000",
-        ["transaction_id", "type", "amount", "at"],
-        ["transaction_id", "type", "amount", "at"],
+        ["id", "type", "amount", "created_at"],
+        ["id", "type", "amount", "created_at"],
     ),
     (
         "user-subscriptions",
@@ -276,3 +276,36 @@ def test_list_command_renders_only_its_documented_columns(
         "a key outside the documented subset became a column, so the command is "
         "still rendering raw API keys (see issue #40)"
     )
+
+
+def test_user_transactions_renders_the_identifier_and_date(
+    monkeypatch: pytest.MonkeyPatch,
+    httpx_mock: Any,
+) -> None:
+    """The row's id and created_at must appear, not blank cells (#69).
+
+    The guard above proves the column list matches the documented subset; this
+    proves the subset selects fields the response actually carries.
+    """
+    monkeypatch.setattr(console, "width", 200)
+    httpx_mock.add_response(
+        url=f"{DEFAULT_BASE_URL}/user/transactions?offset=0&limit=1000",
+        json={
+            "success": True,
+            "data": [
+                {
+                    "id": 424242,
+                    "type": "payment",
+                    "amount": "9.99",
+                    "currency": "USD",
+                    "created_at": "2026-01-02T03:04:05Z",
+                }
+            ],
+        },
+    )
+
+    result = runner.invoke(app, ["user", "transactions"], env=_ENV)
+
+    assert result.exit_code == 0, result.output
+    assert "424242" in result.output
+    assert "2026-01-02" in result.output

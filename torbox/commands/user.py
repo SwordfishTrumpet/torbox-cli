@@ -148,11 +148,11 @@ def transactions(
     if isinstance(data.get("data"), list):
         if not _is_quiet(ctx):
             # The four fields the API returns per transaction; a payment history
-            # is read by date, amount and type.
+            # is read by date, amount and type (#69).
             print_table(
                 data["data"],
                 "Transactions",
-                columns=["transaction_id", "type", "amount", "at"],
+                columns=["id", "type", "amount", "created_at"],
             )
     elif not _is_quiet(ctx):
         print("Transactions: OK")

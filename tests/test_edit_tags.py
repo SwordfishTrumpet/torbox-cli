@@ -100,3 +100,47 @@ def test_edit_omits_fields_not_provided(httpx_mock: Any) -> None:
     body = _run("webdl", [], httpx_mock)
     assert "tags" not in body
     assert "alternative_hashes" not in body
+
+
+# ---------------------------------------------------------------------------
+# Explicitly empty values are requests, not omissions (issue #71)
+# ---------------------------------------------------------------------------
+
+
+def test_empty_tags_and_hashes_are_sent_as_empty_arrays(httpx_mock: Any) -> None:
+    """`--tags ""` must clear the tags, not silently leave the old ones (#71)."""
+    for group in ("torrents", "usenet", "webdl"):
+        body = _run(group, ["--tags", "", "--alternative-hashes", ""], httpx_mock)
+        assert body["tags"] == [], group
+        assert body["alternative_hashes"] == [], group
+
+
+def test_empty_name_is_sent(httpx_mock: Any) -> None:
+    """All three edit commands encode an explicit empty name the same way (#71)."""
+    for group in ("torrents", "usenet", "webdl"):
+        body = _run(group, ["--name", ""], httpx_mock)
+        assert body["name"] == "", group
+
+
+# ---------------------------------------------------------------------------
+# Airlock can be turned off again (issue #72)
+# ---------------------------------------------------------------------------
+
+
+def test_no_airlocked_sends_false(httpx_mock: Any) -> None:
+    """A download in permanent storage must be releasable from the CLI (#72)."""
+    for group in ("torrents", "usenet", "webdl"):
+        body = _run(group, ["--no-airlocked"], httpx_mock)
+        assert body["airlocked"] is False, group
+
+
+def test_airlocked_still_sends_true(httpx_mock: Any) -> None:
+    for group in ("torrents", "usenet", "webdl"):
+        body = _run(group, ["--airlocked"], httpx_mock)
+        assert body["airlocked"] is True, group
+
+
+def test_airlocked_is_omitted_when_neither_flag_is_given(httpx_mock: Any) -> None:
+    for group in ("torrents", "usenet", "webdl"):
+        body = _run(group, [], httpx_mock)
+        assert "airlocked" not in body, group

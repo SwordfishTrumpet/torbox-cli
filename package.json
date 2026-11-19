@@ -1,0 +1,12 @@
+{
+  "name": "torbox-cli",
+  "private": true,
+  "description": "Task runner for this Python project. The pipeline gate reads its check commands from package.json; there is no JavaScript code here. Each script runs the same command .github/workflows/ci.yml runs (see AGENTS.md).",
+  "scripts": {
+    "lint": "uv run ruff check . && uv run ruff format --check .",
+    "typecheck": "uv run mypy --strict torbox",
+    "test": "uv run pytest",
+    "test:fast": "uv run pytest --no-cov -q -x",
+    "check": "npm run lint && npm run typecheck && npm test"
+  }
+}
