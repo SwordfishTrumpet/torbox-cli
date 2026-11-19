@@ -250,8 +250,8 @@ def edit(
     ),
     airlocked: bool | None = typer.Option(
         None,
-        "--airlocked",
-        help="Keep file in permanent storage (Airlock)",
+        "--airlocked/--no-airlocked",
+        help="Keep file in permanent storage (Airlock); --no-airlocked releases it",
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
@@ -263,11 +263,11 @@ def edit(
 ) -> None:
     _set_auto_retry(ctx, auto_retry)
     payload: dict[str, str | int | bool | builtins.list[str]] = {"webdl_id": id}
-    if name:
+    if name is not None:
         payload["name"] = name
-    if tags:
+    if tags is not None:
         payload["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
-    if alternative_hashes:
+    if alternative_hashes is not None:
         payload["alternative_hashes"] = [
             h.strip() for h in alternative_hashes.split(",") if h.strip()
         ]

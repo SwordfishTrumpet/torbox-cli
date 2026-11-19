@@ -618,8 +618,8 @@ def edit(
     ),
     airlocked: bool | None = typer.Option(
         None,
-        "--airlocked",
-        help="Keep file in permanent storage (Airlock)",
+        "--airlocked/--no-airlocked",
+        help="Keep file in permanent storage (Airlock); --no-airlocked releases it",
     ),
     json: bool = typer.Option(False, "--json", "-j", help="Raw JSON output"),
     dry_run: bool = typer.Option(
